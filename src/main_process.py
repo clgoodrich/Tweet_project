@@ -6,7 +6,7 @@ import folium
 import json
 from folium import plugins
 from shapely.geometry import Point
-
+from shapely.geometry import mapping
 pd.set_option('display.max_columns', None)
 
 
@@ -244,6 +244,50 @@ def prepare_heatmap_with_time(temporal_data, cities_gdf):
     return heat_data, time_index
 
 
+# def folium_process_dynamic(final_tweets, us_states_gdf, us_counties_gdf, us_cities_gdf):
+#     """Process data for dynamic temporal visualization"""
+#     final_tweets['time'] = pd.to_datetime(final_tweets['time'])
+#     final_tweets['bin'] = final_tweets['time'].dt.floor('4h')
+#
+#     time_bins = sorted(final_tweets['bin'].unique())
+#     temporal_data = create_temporal_aggregations(final_tweets, time_bins, us_states_gdf)
+#
+#     state_timeslider_data = prepare_timeslider_data(
+#         temporal_data,
+#         us_states_gdf,
+#         'STUSPS',
+#         'state_code',
+#         'states'
+#     )
+#
+#     # NEW
+#     county_timestamped_data = prepare_timestamped_geojson(
+#         temporal_data,
+#         us_counties_gdf,
+#         'GEOID',
+#         'county_fips',
+#         'counties'
+#     )
+#
+#     # state_timeslider_data = prepare_timeslider_data(
+#     #     temporal_data,
+#     #     us_states_gdf,
+#     #     'STUSPS',
+#     #     'state_code',
+#     #     'states'
+#     # )
+#     #
+#     # county_timeslider_data = prepare_timeslider_data(
+#     #     temporal_data,
+#     #     us_counties_gdf,
+#     #     'GEOID',
+#     #     'county_fips',
+#     #     'counties'
+#     # )
+#
+#     city_heat_data, time_labels = prepare_heatmap_with_time(temporal_data, us_cities_gdf)
+#
+#     return state_timeslider_data, county_timestamped_data, city_heat_data, time_labels
 def folium_process_dynamic(final_tweets, us_states_gdf, us_counties_gdf, us_cities_gdf):
     """Process data for dynamic temporal visualization"""
     final_tweets['time'] = pd.to_datetime(final_tweets['time'])
@@ -252,7 +296,8 @@ def folium_process_dynamic(final_tweets, us_states_gdf, us_counties_gdf, us_citi
     time_bins = sorted(final_tweets['bin'].unique())
     temporal_data = create_temporal_aggregations(final_tweets, time_bins, us_states_gdf)
 
-    state_timeslider_data = prepare_timeslider_data(
+    # Use TimestampedGeoJson instead of TimeSliderChoropleth
+    state_timestamped_data = prepare_timestamped_geojson(
         temporal_data,
         us_states_gdf,
         'STUSPS',
@@ -260,7 +305,7 @@ def folium_process_dynamic(final_tweets, us_states_gdf, us_counties_gdf, us_citi
         'states'
     )
 
-    county_timeslider_data = prepare_timeslider_data(
+    county_timestamped_data = prepare_timestamped_geojson(
         temporal_data,
         us_counties_gdf,
         'GEOID',
@@ -270,62 +315,153 @@ def folium_process_dynamic(final_tweets, us_states_gdf, us_counties_gdf, us_citi
 
     city_heat_data, time_labels = prepare_heatmap_with_time(temporal_data, us_cities_gdf)
 
-    return state_timeslider_data, county_timeslider_data, city_heat_data, time_labels
+    return state_timestamped_data, county_timestamped_data, city_heat_data, time_labels
 
 
-def generate_folium_for_dynamic(state_timeslider_data, county_timeslider_data, city_heat_data, time_labels):
-    """Generate dynamic temporal map with TimeSliderChoropleth"""
-    """Generate dynamic temporal map with debugging"""
+# def prepare_timestamped_geojson(temporal_data, boundary_gdf, join_left, join_right, level_name):
+#     """Prepare data for TimestampedGeoJson"""
+#     features = []
+#
+#     for bin_time, counts_data in temporal_data.items():
+#         # Merge boundary data with counts
+#         bin_gdf = boundary_gdf.merge(
+#             counts_data[level_name],
+#             left_on=join_left,
+#             right_on=join_right,
+#             how='left'
+#         )
+#         bin_gdf['tweet_count'] = bin_gdf['tweet_count'].fillna(0)
+#         bin_gdf = bin_gdf[bin_gdf.geometry.notna()]
+#
+#         # Create features for this timestamp
+#         for _, row in bin_gdf.iterrows():
+#             feature = {
+#                 'type': 'Feature',
+#                 'geometry': json.loads(gpd.GeoSeries([row.geometry]).to_json())['features'][0]['geometry'],
+#                 'properties': {
+#                     'time': bin_time.isoformat(),
+#                     'tweet_count': float(row['tweet_count']),
+#                     'state_code': row[join_left],
+#                     'style': {
+#                         'fillColor': 'red' if row['tweet_count'] > 0 else 'lightgray',
+#                         'fillOpacity': min(0.8, row['tweet_count'] / 50),  # Scale opacity
+#                         'weight': 1
+#                     }
+#                 }
+#             }
+#             features.append(feature)
+#
+#     return {'type': 'FeatureCollection', 'features': features}
+def prepare_timestamped_geojson(temporal_data, boundary_gdf, join_left, join_right, level_name):
+    """Prepare data for TimestampedGeoJson with visible styling"""
+    features = []
 
+    for bin_time, counts_data in temporal_data.items():
+        bin_gdf = boundary_gdf.merge(
+            counts_data[level_name],
+            left_on=join_left,
+            right_on=join_right,
+            how='left'
+        )
+        bin_gdf['tweet_count'] = bin_gdf['tweet_count'].fillna(0)
+        bin_gdf = bin_gdf[bin_gdf.geometry.notna()]
 
+        for _, row in bin_gdf.iterrows():
+            # Calculate opacity: minimum 0.1 so all polygons are visible
+            opacity = max(0.1, min(0.8, row['tweet_count'] / 20))
+
+            feature = {
+                'type': 'Feature',
+                'geometry': mapping(row.geometry),
+                'properties': {
+                    'time': bin_time.isoformat(),
+                    'tweet_count': float(row['tweet_count']),
+                    'state_code': row[join_left],
+                    'style': {
+                        'fillColor': 'red' if row['tweet_count'] > 0 else 'lightblue',
+                        'fillOpacity': opacity,  # Always visible
+                        'color': 'black',  # Border color
+                        'weight': 0.5
+                    }
+                }
+            }
+            features.append(feature)
+
+    return {'type': 'FeatureCollection', 'features': features}
+
+# def generate_folium_for_dynamic(state_timeslider_data, county_timeslider_data, city_heat_data, time_labels):
+#     """Generate map with TimestampedGeoJson"""
+#     m = folium.Map(location=[32.0, -83.0], zoom_start=6)
+#
+#     # Convert your existing data to TimestampedGeoJson format
+#     timestamped_features = []
+#     for time_bin in state_timeslider_data:
+#         for feature in time_bin['features']:
+#             feature['properties']['style'] = {
+#                 'fillColor': 'red' if feature['properties']['tweet_count'] > 0 else 'lightgray',
+#                 'fillOpacity': min(0.8, feature['properties']['tweet_count'] / 50),
+#                 'weight': 1
+#             }
+#             timestamped_features.append(feature)
+#
+#     # Add TimestampedGeoJson layer
+#     plugins.TimestampedGeoJson({
+#         'type': 'FeatureCollection',
+#         'features': timestamped_features
+#     }, period='P4H', add_last_point=True).add_to(m)
+#
+#     # Add working HeatMapWithTime
+#     plugins.HeatMapWithTime(
+#         city_heat_data,
+#         index=time_labels,
+#         auto_play=True,
+#         max_opacity=0.8,
+#         radius=15
+#     ).add_to(m)
+#
+#     return m
+
+def generate_folium_for_dynamic(state_timestamped_data, county_timestamped_data, city_heat_data, time_labels):
+    """Debug TimestampedGeoJson data structure"""
     m = folium.Map(location=[32.0, -83.0], zoom_start=6)
-    # Validate data before creating layers
-    # if state_timeslider_data and len(state_timeslider_data) > 0:
-    #     try:
-    #         state_temporal_layer = plugins.TimeSliderChoropleth(
-    #             data=state_timeslider_data,
-    #             styledict={
-    #                 'fillColor': 'red',
-    #                 'fillOpacity': 0.7,
-    #                 'color': 'black',
-    #                 'weight': 1
-    #             },
-    #             name='States Over Time'
-    #         )
-    #         state_temporal_layer.add_to(m)
-    #     except ValueError as e:
-    #         print(f"Error creating state layer: {e}")
-    # #
-    # if county_timeslider_data and len(county_timeslider_data) > 0:
-    #     try:
-    #         county_temporal_layer = plugins.TimeSliderChoropleth(
-    #             data=county_timeslider_data,
-    #             styledict={
-    #                 'fillColor': 'blue',
-    #                 'fillOpacity': 0.5,
-    #                 'color': 'black',
-    #                 'weight': 0.5
-    #             },
-    #             name='Counties Over Time'
-    #         )
-    #         county_temporal_layer.add_to(m)
-    #     except ValueError as e:
-    #         print(f"Error creating county layer: {e}")
-    if city_heat_data and len(city_heat_data) > 0 and len(time_labels) > 0:
-        try:
-            plugins.HeatMapWithTime(
-                data=city_heat_data,
-                auto_play=True,
-                max_opacity=0.8,
-                radius=15,
-                name='City Heatmap Over Time'
-            ).add_to(m)
-        except Exception as e:
-            print(f"Error creating heatmap: {e}")
+    print(state_timestamped_data)
+    # Debug the actual data structure
+    # print("=== TimestampedGeoJson Debug ===")
+    # print(f"Data type: {type(state_timestamped_data)}")
+    # print(
+    #     f"Data keys: {list(state_timestamped_data.keys()) if isinstance(state_timestamped_data, dict) else 'Not a dict'}")
+    #
+    # if isinstance(state_timestamped_data, dict) and 'features' in state_timestamped_data:
+    #     print(f"Number of features: {len(state_timestamped_data['features'])}")
+    #
+    #     if state_timestamped_data['features']:
+    #         first_feature = state_timestamped_data['features'][0]
+    #         print(f"First feature keys: {list(first_feature.keys())}")
+    #         print(f"First feature properties: {first_feature.get('properties', {}).keys()}")
+    #         print(f"First feature time: {first_feature.get('properties', {}).get('time')}")
 
-    folium.LayerControl().add_to(m)
+    # Try adding TimestampedGeoJson with error handling
+    try:
+        plugins.TimestampedGeoJson(
+            state_timestamped_data,
+            period='P4H',
+            add_last_point=True
+        ).add_to(m)
+        print("TimestampedGeoJson added successfully")
+    except Exception as e:
+        print(f"TimestampedGeoJson error: {e}")
+        print("Falling back to cities only")
+
+    # Add cities (this should always work)
+    plugins.HeatMapWithTime(
+        city_heat_data,
+        index=time_labels,
+        auto_play=True,
+        max_opacity=0.8,
+        radius=15
+    ).add_to(m)
+
     return m
-
 
 def main():
     # Load and prepare data
