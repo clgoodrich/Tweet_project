@@ -31,10 +31,10 @@ def except_hook(cls: type, exception: Exception, tb) -> None:
     """Enhanced exception handler for debugging Qt applications."""
     traceback.print_tb(tb)
 
-def main():
-    sys.excepthook = except_hook
-    # Now, call the function from the imported module
-    main_process.main() # <-- CALL the function on the 'app' module
+# def main():
+#     # sys.excepthook = except_hook
+#     # Now, call the function from the imported module
+#     main_process.main() # <-- CALL the function on the 'app' module
 
 if __name__ == '__main__':
-    main()
+    main_process.main()
