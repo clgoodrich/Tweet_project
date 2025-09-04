@@ -1,2 +1,9 @@
 *.csv
 *.geojson
+*.cpg
+*.dbf
+*.prj
+*.shp
+*.shx
+*.zip
+*.qgs
