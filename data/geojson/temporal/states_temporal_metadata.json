@@ -1,0 +1,77 @@
+{
+  "level": "states",
+  "time_slices": 11,
+  "temporal_index": [
+    {
+      "time": "2024-09-26T00:00:00",
+      "filename": "states_20240926_000000.geojson",
+      "feature_count": 52,
+      "total_tweets": 72.0
+    },
+    {
+      "time": "2024-09-26T04:00:00",
+      "filename": "states_20240926_040000.geojson",
+      "feature_count": 52,
+      "total_tweets": 130.0
+    },
+    {
+      "time": "2024-09-26T08:00:00",
+      "filename": "states_20240926_080000.geojson",
+      "feature_count": 52,
+      "total_tweets": 162.0
+    },
+    {
+      "time": "2024-09-26T12:00:00",
+      "filename": "states_20240926_120000.geojson",
+      "feature_count": 52,
+      "total_tweets": 159.0
+    },
+    {
+      "time": "2024-09-26T16:00:00",
+      "filename": "states_20240926_160000.geojson",
+      "feature_count": 52,
+      "total_tweets": 245.0
+    },
+    {
+      "time": "2024-09-26T20:00:00",
+      "filename": "states_20240926_200000.geojson",
+      "feature_count": 52,
+      "total_tweets": 383.0
+    },
+    {
+      "time": "2024-09-27T00:00:00",
+      "filename": "states_20240927_000000.geojson",
+      "feature_count": 52,
+      "total_tweets": 373.0
+    },
+    {
+      "time": "2024-09-27T04:00:00",
+      "filename": "states_20240927_040000.geojson",
+      "feature_count": 52,
+      "total_tweets": 421.0
+    },
+    {
+      "time": "2024-09-27T08:00:00",
+      "filename": "states_20240927_080000.geojson",
+      "feature_count": 52,
+      "total_tweets": 366.0
+    },
+    {
+      "time": "2024-09-27T12:00:00",
+      "filename": "states_20240927_120000.geojson",
+      "feature_count": 52,
+      "total_tweets": 297.0
+    },
+    {
+      "time": "2024-09-27T16:00:00",
+      "filename": "states_20240927_160000.geojson",
+      "feature_count": 52,
+      "total_tweets": 220.0
+    }
+  ],
+  "total_features": 572,
+  "time_range": {
+    "start": "2024-09-26T00:00:00",
+    "end": "2024-09-27T16:00:00"
+  }
+}
