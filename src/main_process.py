@@ -23,9 +23,9 @@ def get_data_file_path(*path_segments):
     return os.path.join(project_root, *path_segments)
 
 
-def get_geojson():
+def get_geojson(label):
     """Get path to helene.geojson"""
-    geojson = get_data_file_path('data', 'geojson', 'helene.geojson')
+    geojson = get_data_file_path('data', 'geojson', f'{label}.geojson')
     return gpd.read_file(geojson)
 
 
@@ -635,7 +635,7 @@ def create_qgis_project_file(shapefile_path, time_column, output_path):
     print(f"QGIS project file created: {output_path}")
 
 
-def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf):
+def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf, label):
     """
     Main function to convert all your temporal data to shapefiles
     """
@@ -655,13 +655,13 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
     print("\n1. Creating wide format shapefiles...")
     states_wide = create_wide_format_shapefile(
         temporal_data, us_states_gdf,
-        os.path.join(output_dir, 'states_wide_format.shp'),
+        os.path.join(output_dir, f'{label}_states_wide_format.shp'),
         'states'
     )
 
     counties_wide = create_wide_format_shapefile(
         temporal_data, us_counties_gdf,
-        os.path.join(output_dir, 'counties_wide_format.shp'),
+        os.path.join(output_dir, f'{label}_counties_wide_format.shp'),
         'counties'
     )
 
@@ -669,13 +669,13 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
     print("\n2. Creating long format shapefiles...")
     states_long = create_long_format_shapefile(
         temporal_data, us_states_gdf,
-        os.path.join(output_dir, 'states_long_format.shp'),
+        os.path.join(output_dir, f'{label}_states_long_format.shp'),
         'states'
     )
 
     counties_long = create_long_format_shapefile(
         temporal_data, us_counties_gdf,
-        os.path.join(output_dir, 'counties_long_format.shp'),
+        os.path.join(output_dir, f'{label}_counties_long_format.shp'),
         'counties'
     )
 
@@ -683,27 +683,27 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
     print("\n3. Creating separate shapefiles per time period...")
     create_separate_time_shapefiles(
         temporal_data, us_states_gdf,
-        os.path.join(output_dir, 'states_by_time'),
+        os.path.join(output_dir, f'{label}_states_by_time'),
         'states'
     )
 
     create_separate_time_shapefiles(
         temporal_data, us_counties_gdf,
-        os.path.join(output_dir, 'counties_by_time'),
+        os.path.join(output_dir, f'{label}_counties_by_time'),
         'counties'
     )
 
     # Create QGIS project files for easy loading
     create_qgis_project_file(
-        os.path.join(output_dir, 'states_long_format.shp'),
+        os.path.join(output_dir, f'{label}_states_long_format.shp'),
         'time_str',
-        os.path.join(output_dir, 'states_temporal.qgs')
+        os.path.join(output_dir, f'{label}_states_temporal.qgs')
     )
 
     create_qgis_project_file(
-        os.path.join(output_dir, 'counties_long_format.shp'),
+        os.path.join(output_dir, f'{label}_counties_long_format.shp'),
         'time_str',
-        os.path.join(output_dir, 'counties_temporal.qgs')
+        os.path.join(output_dir, f'{label}_counties_temporal.qgs')
     )
 
     print(f"\nAll shapefiles created in: {output_dir}")
@@ -737,8 +737,9 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
 
 # Keep your existing helper functions but add this updated main function
 def main():
+    label = 'francine'
     # Load and prepare data (same as before)
-    tweets_gdf = get_geojson().to_crs("EPSG:4326")
+    tweets_gdf = get_geojson(label).to_crs("EPSG:4326")
     us_cities_gdf = get_cities().to_crs("EPSG:4326")
     us_states_gdf = get_states().to_crs("EPSG:4326")
     us_counties_gdf = get_counties().to_crs("EPSG:4326")
@@ -752,7 +753,7 @@ def main():
 
     # Clean data (same as before)
     final_tweets = clean_and_select_columns(tweets_with_cities)
-    convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf)
+    convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf, label)
     # Create temporal data with fixed timestamps
     styledata_states, styledata_counties, city_heat_data, time_labels, time_bins = create_separate_maps(
         final_tweets, us_states_gdf, us_counties_gdf, us_cities_gdf
