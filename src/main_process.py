@@ -749,7 +749,7 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
 
 # Keep your existing helper functions but add this updated main function
 def main():
-    label = 'helene'
+    label = 'francine'
     # Load and prepare data (same as before)
     tweets_gdf = get_geojson(label).to_crs("EPSG:4326")
     us_cities_gdf = get_cities().to_crs("EPSG:4326")

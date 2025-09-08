@@ -6,10 +6,22 @@
   <component name="ChangeListManager">
     <list default="true" id="fa08bd6c-ebd5-445d-b4ba-5199d01a26f9" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/choropleth_timeslider.html" beforeDir="false" afterPath="$PROJECT_DIR$/choropleth_timeslider.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/heatmap_timeslider.html" beforeDir="false" afterPath="$PROJECT_DIR$/heatmap_timeslider.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main_process.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/toggleable_timeslider.html" beforeDir="false" afterPath="$PROJECT_DIR$/toggleable_timeslider.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.sbn" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.sbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.shp.xml" beforeDir="false" afterPath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.shp.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.sbn" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.sbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.shp.xml" beforeDir="false" afterPath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.shp.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_cities_long.shp.xml" beforeDir="false" afterPath="$PROJECT_DIR$/temporal_shapefiles/helene_cities_long.shp.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_cities_wide.sbn" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_cities_wide.sbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_counties_long_format.sbn" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_counties_long_format.sbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_counties_long_format.shp.xml" beforeDir="false" afterPath="$PROJECT_DIR$/temporal_shapefiles/helene_counties_long_format.shp.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_states_long_format.sbn" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_states_long_format.sbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_states_long_format.shp.xml" beforeDir="false" afterPath="$PROJECT_DIR$/temporal_shapefiles/helene_states_long_format.shp.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -214,7 +226,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Tweet_project$cities_importer.coverage" NAME="cities_importer Coverage Results" MODIFIED="1756404938168" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
-    <SUITE FILE_PATH="coverage/Tweet_project$main.coverage" NAME="main Coverage Results" MODIFIED="1757269348974" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Tweet_project$main.coverage" NAME="main Coverage Results" MODIFIED="1757352977929" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Tweet_project$tester_main.coverage" NAME="tester_main Coverage Results" MODIFIED="1756926777984" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/Tweet_project$main_process.coverage" NAME="main_process Coverage Results" MODIFIED="1756926789977" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
   </component>
