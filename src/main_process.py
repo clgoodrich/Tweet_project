@@ -357,12 +357,7 @@ def create_wide_format_shapefile(temporal_data, gdf, output_path, level_name='st
     result_gdf = gdf.copy()
 
     # Get the appropriate join columns
-    if level_name == 'states':
-        join_col = 'STUSPS'
-        data_col = 'state_code'
-    else:
-        join_col = 'GEOID'
-        data_col = 'county_fips'
+    join_col, data_col = _get_join_cols(level_name)
 
     # Add a column for each time period
     for bin_time, counts_data in temporal_data.items():
@@ -416,13 +411,7 @@ def create_long_format_shapefile(temporal_data, gdf, output_path, level_name='st
     all_records = []
 
     # Get the appropriate join columns
-    if level_name == 'states':
-        join_col = 'STUSPS'
-        data_col = 'state_code'
-    else:
-        join_col = 'GEOID'
-        data_col = 'county_fips'
-
+    join_col, data_col = _get_join_cols(level_name)
     # For each time period, create records
     for bin_time, counts_data in temporal_data.items():
         time_counts = counts_data[level_name]
@@ -481,12 +470,7 @@ def create_separate_time_shapefiles(temporal_data, gdf, output_directory, level_
     os.makedirs(output_directory, exist_ok=True)
 
     # Get the appropriate join columns
-    if level_name == 'states':
-        join_col = 'STUSPS'
-        data_col = 'state_code'
-    else:
-        join_col = 'GEOID'
-        data_col = 'county_fips'
+    join_col, data_col = _get_join_cols(level_name)
 
     shapefile_paths = []
 
@@ -634,8 +618,20 @@ def create_qgis_project_file(shapefile_path, time_column, output_path):
 
     print(f"QGIS project file created: {output_path}")
 
+def _get_join_cols(level_name: str):
+    """
+    Return (join_col_on_geometry, data_col_on_temporal_counts)
+    """
+    if level_name == 'states':
+        return 'STUSPS', 'state_code'
+    elif level_name == 'counties':
+        return 'GEOID', 'county_fips'
+    elif level_name == 'cities':
+        return 'geonameid', 'city_id'
+    else:
+        raise ValueError(f"Unknown level_name: {level_name}")
 
-def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf, label):
+def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf,us_cities_gdf, label):
     """
     Main function to convert all your temporal data to shapefiles
     """
@@ -664,7 +660,11 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
         os.path.join(output_dir, f'{label}_counties_wide_format.shp'),
         'counties'
     )
-
+    cities_wide = create_wide_format_shapefile(
+        temporal_data, us_cities_gdf,
+        os.path.join(output_dir, f'{label}_cities_wide.shp'),
+        'cities'
+    )
     # Option 2: Long format shapefiles
     print("\n2. Creating long format shapefiles...")
     states_long = create_long_format_shapefile(
@@ -678,9 +678,12 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
         os.path.join(output_dir, f'{label}_counties_long_format.shp'),
         'counties'
     )
+    cities_long   = create_long_format_shapefile(temporal_data, us_cities_gdf,
+                       os.path.join(output_dir, f'{label}_cities_long.shp'),   'cities')
 
     # Option 3: Separate shapefiles per time period
     print("\n3. Creating separate shapefiles per time period...")
+
     create_separate_time_shapefiles(
         temporal_data, us_states_gdf,
         os.path.join(output_dir, f'{label}_states_by_time'),
@@ -692,6 +695,10 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
         os.path.join(output_dir, f'{label}_counties_by_time'),
         'counties'
     )
+
+    create_separate_time_shapefiles(
+        temporal_data, us_cities_gdf,
+        os.path.join(output_dir, f'{label}_cities_by_time'),   'cities')
 
     # Create QGIS project files for easy loading
     create_qgis_project_file(
@@ -706,6 +713,11 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
         os.path.join(output_dir, f'{label}_counties_temporal.qgs')
     )
 
+    create_qgis_project_file(
+        os.path.join(output_dir, f'{label}_cities_long_format.shp'),
+        'time_str',
+        os.path.join(output_dir, f'{label}_cities_temporal.qgs')
+    )
     print(f"\nAll shapefiles created in: {output_dir}")
     print("\nRecommended usage:")
     print("- Wide format: Good for ArcGIS Pro time slider")
@@ -737,7 +749,7 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
 
 # Keep your existing helper functions but add this updated main function
 def main():
-    label = 'francine'
+    label = 'helene'
     # Load and prepare data (same as before)
     tweets_gdf = get_geojson(label).to_crs("EPSG:4326")
     us_cities_gdf = get_cities().to_crs("EPSG:4326")
@@ -749,38 +761,44 @@ def main():
     tweets_with_counties = gpd.sjoin(tweets_with_states, us_counties_gdf, predicate='within', lsuffix='_tweet',
                                      rsuffix='_county')
     tweets_with_cities = gpd.sjoin_nearest(tweets_with_counties, us_cities_gdf, max_distance=0.1,
-                                           distance_col='distance_to_city')
-
+                                           distance_col='distance_to_city').drop_duplicates()
+    # tweets_with_cities = gpd.sjoin_nearest(
+    #     tweets_with_counties, us_cities_gdf,
+    #     max_distance=0.1,
+    #     how='left',
+    #     distance_col='distance_to_city'
+    # ).sort_values('distance_to_city').drop_duplicates('tweet_id')
+    print(tweets_with_cities)
     # Clean data (same as before)
     final_tweets = clean_and_select_columns(tweets_with_cities)
-    convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf, label)
+    convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf,us_cities_gdf, label)
     # Create temporal data with fixed timestamps
-    styledata_states, styledata_counties, city_heat_data, time_labels, time_bins = create_separate_maps(
-        final_tweets, us_states_gdf, us_counties_gdf, us_cities_gdf
-    )
-
-    print(f"Created temporal data for {len(time_bins)} time periods")
-    print(f"First timestamp in styledata: {list(next(iter(styledata_states.values())).keys())[0]}")
-
-    # Create toggleable map using FeatureGroups
-    toggleable_map = create_toggleable_timeslider_map(us_states_gdf, us_counties_gdf, styledata_states,
-                                                      styledata_counties)
-    toggleable_map.save('toggleable_timeslider.html')
-    print("Toggleable map saved as 'toggleable_timeslider.html'")
-
-    # Create separate maps to avoid conflicts
-
-    # 1. Choropleth-only map (states and counties)
-    choropleth_map = create_choropleth_map(us_states_gdf, us_counties_gdf, styledata_states, styledata_counties)
-    choropleth_map.save('choropleth_timeslider.html')
-    print("Choropleth map saved as 'choropleth_timeslider.html'")
-
-    # 2. Heatmap-only map (cities)
-    heatmap_map = create_heatmap_map(city_heat_data, time_labels)
-    heatmap_map.save('heatmap_timeslider.html')
-    print("Heatmap map saved as 'heatmap_timeslider.html'")
-
-    print("All maps generated successfully!")
+    # styledata_states, styledata_counties, city_heat_data, time_labels, time_bins = create_separate_maps(
+    #     final_tweets, us_states_gdf, us_counties_gdf, us_cities_gdf
+    # )
+    #
+    # print(f"Created temporal data for {len(time_bins)} time periods")
+    # print(f"First timestamp in styledata: {list(next(iter(styledata_states.values())).keys())[0]}")
+    #
+    # # Create toggleable map using FeatureGroups
+    # toggleable_map = create_toggleable_timeslider_map(us_states_gdf, us_counties_gdf, styledata_states,
+    #                                                   styledata_counties)
+    # toggleable_map.save('toggleable_timeslider.html')
+    # print("Toggleable map saved as 'toggleable_timeslider.html'")
+    #
+    # # Create separate maps to avoid conflicts
+    #
+    # # 1. Choropleth-only map (states and counties)
+    # choropleth_map = create_choropleth_map(us_states_gdf, us_counties_gdf, styledata_states, styledata_counties)
+    # choropleth_map.save('choropleth_timeslider.html')
+    # print("Choropleth map saved as 'choropleth_timeslider.html'")
+    #
+    # # 2. Heatmap-only map (cities)
+    # heatmap_map = create_heatmap_map(city_heat_data, time_labels)
+    # heatmap_map.save('heatmap_timeslider.html')
+    # print("Heatmap map saved as 'heatmap_timeslider.html'")
+    #
+    # print("All maps generated successfully!")
 
 
 def create_toggleable_timeslider_map(us_states_gdf, us_counties_gdf, styledata_states, styledata_counties):

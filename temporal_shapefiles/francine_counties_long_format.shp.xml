@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata xml:lang="en"><Esri><CreaDate>20250907</CreaDate><CreaTime>12295500</CreaTime><ArcGISFormat>1.0</ArcGISFormat><SyncOnce>TRUE</SyncOnce><DataProperties><lineage><Process ToolSource="c:\program files\arcgis\pro\Resources\ArcToolbox\toolboxes\Data Management Tools.tbx\CalculateField" Date="20250907" Time="122955">CalculateField francine_counties_long_format time_str "!time_str! +":00"" PYTHON3 # TEXT NO_ENFORCE_DOMAINS</Process></lineage></DataProperties></Esri></metadata>
