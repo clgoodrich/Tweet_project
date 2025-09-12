@@ -4,17 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fa08bd6c-ebd5-445d-b4ba-5199d01a26f9" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/tweet_project.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main_process.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_cities_long.sbn" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_cities_long.sbx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.sbn" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.sbx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.sbn" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.sbx" beforeDir="false" />
-    </list>
+    <list default="true" id="fa08bd6c-ebd5-445d-b4ba-5199d01a26f9" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -197,7 +187,7 @@
       <workItem from="1757264951777" duration="612000" />
       <workItem from="1757265862690" duration="5204000" />
       <workItem from="1757616152679" duration="300000" />
-      <workItem from="1757697549794" duration="5443000" />
+      <workItem from="1757697549794" duration="5744000" />
     </task>
     <servers />
   </component>
