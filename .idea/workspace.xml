@@ -4,7 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fa08bd6c-ebd5-445d-b4ba-5199d01a26f9" name="Changes" comment="" />
+    <list default="true" id="fa08bd6c-ebd5-445d-b4ba-5199d01a26f9" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/tweet_project.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main_process.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_cities_long.sbn" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_cities_long.sbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.sbn" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.sbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.sbn" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.sbx" beforeDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -14,6 +24,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Python Script" />
+        <option value="Jupyter Notebook" />
       </list>
     </option>
   </component>
@@ -186,6 +197,7 @@
       <workItem from="1757264951777" duration="612000" />
       <workItem from="1757265862690" duration="5204000" />
       <workItem from="1757616152679" duration="300000" />
+      <workItem from="1757697549794" duration="5443000" />
     </task>
     <servers />
   </component>
@@ -209,7 +221,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Tweet_project$cities_importer.coverage" NAME="cities_importer Coverage Results" MODIFIED="1756404938168" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
-    <SUITE FILE_PATH="coverage/Tweet_project$main.coverage" NAME="main Coverage Results" MODIFIED="1757352977929" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Tweet_project$main.coverage" NAME="main Coverage Results" MODIFIED="1757701319262" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Tweet_project$tester_main.coverage" NAME="tester_main Coverage Results" MODIFIED="1756926777984" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/Tweet_project$main_process.coverage" NAME="main_process Coverage Results" MODIFIED="1756926789977" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
   </component>

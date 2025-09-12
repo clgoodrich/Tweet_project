@@ -1,14 +1,6 @@
 import geopandas as gpd
 import pandas as pd
-import numpy as np
 import os
-import folium
-import json
-from folium import plugins
-from folium.plugins import TimeSliderChoropleth
-from shapely.geometry import Point
-import branca.colormap as cm
-from shapely.validation import make_valid
 pd.set_option('display.max_columns', None)
 
 
@@ -30,22 +22,72 @@ def get_geojson(label):
 
 
 def get_cities():
-    df_path = get_data_file_path('data', 'tables', 'cities1000.csv')
-    df = pd.read_csv(df_path)
-    us_cities_df = df[
-        (df['country_code'] == 'US') &
-        (df['feature_class'] == 'P') &
-        (df['population'].notna()) &
-        (df['latitude'].notna()) &
-        (df['longitude'].notna())
-        ].reset_index(drop=True)
+    """
+    Load US cities data, starting with GeoJSON and supplementing with CSV data.
+    Combines both sources to maximize data coverage.
+    """
+    cities_gdf = None
 
-    us_cities_gdf = gpd.GeoDataFrame(
-        us_cities_df,
-        geometry=gpd.points_from_xy(us_cities_df.longitude, us_cities_df.latitude),
-        crs="EPSG:4326"
-    )
-    return us_cities_gdf
+    # Try to load GeoJSON first
+    try:
+        geojson_path = get_data_file_path('data', 'geojson', f'us_cities.geojson')
+        cities_gdf = gpd.read_file(geojson_path)
+
+        if cities_gdf.crs is None:
+            cities_gdf = cities_gdf.set_crs("EPSG:4326")
+
+        print(f"✓ Loaded {len(cities_gdf)} cities from GeoJSON")
+
+    except (FileNotFoundError, Exception) as e:
+        print(f"⚠ GeoJSON loading failed ({e})")
+
+    # Load CSV data
+    try:
+        df_path = get_data_file_path('data', 'tables', 'cities1000.csv')
+        df = pd.read_csv(df_path)
+        csv_cities_df = df[
+            (df['country_code'] == 'US') &
+            (df['feature_class'] == 'P') &
+            (df['population'].notna()) &
+            (df['latitude'].notna()) &
+            (df['longitude'].notna())
+            ].reset_index(drop=True)
+
+        csv_cities_gdf = gpd.GeoDataFrame(
+            csv_cities_df,
+            geometry=gpd.points_from_xy(csv_cities_df.longitude, csv_cities_df.latitude),
+            crs="EPSG:4326"
+        )
+
+        print(f"✓ Loaded {len(csv_cities_gdf)} cities from CSV")
+
+        # If we have both, supplement GeoJSON with missing CSV cities
+        if cities_gdf is not None:
+            # Find missing cities (by geonameid if available, otherwise by name)
+            if 'geonameid' in cities_gdf.columns and 'geonameid' in csv_cities_gdf.columns:
+                existing_ids = set(cities_gdf['geonameid'])
+                missing_cities = csv_cities_gdf[~csv_cities_gdf['geonameid'].isin(existing_ids)]
+            else:
+                # Fall back to name-based comparison
+                existing_names = set(cities_gdf['name']) if 'name' in cities_gdf.columns else set()
+                missing_cities = csv_cities_gdf[~csv_cities_gdf['name'].isin(existing_names)]
+
+            if len(missing_cities) > 0:
+                # Combine datasets
+                cities_gdf = pd.concat([cities_gdf, missing_cities], ignore_index=True)
+                print(f"✓ Added {len(missing_cities)} supplemental cities from CSV")
+        else:
+
+            # If GeoJSON failed, use CSV only
+            cities_gdf = csv_cities_gdf
+
+    except Exception as e:
+        if cities_gdf is None:
+            raise Exception(f"Failed to load both GeoJSON and CSV: {e}")
+        print(f"⚠ CSV supplementation failed: {e}")
+
+    print(f"✓ Total cities loaded: {len(cities_gdf)}")
+    return cities_gdf
 
 
 def get_states():
@@ -77,10 +119,6 @@ def clean_and_select_columns(tweets_with_cities):
 
     return cleaned
 
-
-
-
-
 def create_temporal_aggregations(tweets_df, time_bins, us_states_gdf):
     """Create aggregated counts for each time bin"""
     temporal_data = {}
@@ -97,250 +135,7 @@ def create_temporal_aggregations(tweets_df, time_bins, us_states_gdf):
             'counties': county_counts,
             'cities': city_counts
         }
-
     return temporal_data
-
-
-
-def prepare_heatmap_with_time(temporal_data, cities_gdf):
-    """Prepare data for HeatMapWithTime"""
-    heat_data = []
-    time_index = []
-
-    for bin_time, counts_data in temporal_data.items():
-        bin_cities = cities_gdf.merge(
-            counts_data['cities'],
-            left_on='geonameid',
-            right_on='city_id',
-            how='inner'
-        )
-
-        bin_heat_data = []
-        for _, row in bin_cities.iterrows():
-            # Ensure valid coordinates and counts
-            if pd.notna(row.latitude) and pd.notna(row.longitude) and row.tweet_count > 0:
-                bin_heat_data.append([
-                    float(row.latitude),
-                    float(row.longitude),
-                    float(row.tweet_count)
-                ])
-
-        heat_data.append(bin_heat_data)
-        time_index.append(bin_time.strftime('%Y-%m-%d %H:%M'))
-
-    return heat_data, time_index
-
-def temporal_data_process(final_tweets, gdf):
-    time_columns = []
-    final_tweets['time'] = pd.to_datetime(final_tweets['time'])
-    final_tweets['bin'] = final_tweets['time'].dt.floor('4h')
-
-    time_bins = sorted(final_tweets['bin'].unique())
-    temporal_data = create_temporal_aggregations(final_tweets, time_bins, gdf)
-
-    for bin_time, counts_data in temporal_data.items():
-        # Create column name for this time bin
-        time_col = f"tweets_{bin_time.strftime('%Y%m%d_%H%M')}"
-        time_columns.append(time_col)
-    return temporal_data, time_columns
-
-
-def color_determiner(value):
-    """Fixed color determiner with proper hex colors"""
-    if value == 0:
-        return '#ffffff'  # white - no data
-    elif value == 1:
-        return '#ffff99'  # light yellow
-    elif 5 >= value > 1:
-        return '#ff9933'  # orange
-    elif 10 >= value > 5:
-        return '#ff3333'  # red
-    elif value > 10:
-        return '#990000'  # dark red
-    return '#ffffff'  # default white
-
-
-def style_dict_process_fixed(time_bins, gdf, temporal_data, label):
-    """
-    Create styledict with proper timestamp formatting for TimeSliderChoropleth.
-
-    This is the key fix - we need timestamps as strings matching the folium expectation.
-    """
-    styledict = {}
-
-    # Configure based on geographic level
-    if label == 'states':
-        code, type_col = 'state_code', 'STUSPS'
-    else:
-        code, type_col = 'county_fips', 'GEOID'
-
-    # Convert time_bins to timestamp strings (Unix timestamps)
-    timestamp_strings = {}
-    for bin_time in time_bins:
-        # Convert to Unix timestamp string
-        timestamp_str = str(int(bin_time.timestamp()))
-        timestamp_strings[bin_time] = timestamp_str
-
-    # Create styledict for each geographic feature
-    for feature_idx, row in gdf.iterrows():
-        feature_styles = {}
-
-        # For each time period, determine the style
-        for bin_time in time_bins:
-            timestamp_str = timestamp_strings[bin_time]
-
-            # Get temporal data for this time bin
-            temporal_data_here = temporal_data[bin_time][label]
-            feature_id = row[type_col]  # e.g., 'GA', 'FL', or county FIPS
-
-            # Check if this feature has data for this time period
-            feature_data = temporal_data_here[temporal_data_here[code] == feature_id]
-
-            if not feature_data.empty:
-                tweet_count = int(float(feature_data['tweet_count'].iloc[0]))
-                color = color_determiner(tweet_count)
-                opacity = max(0.3, min(0.9, tweet_count / 20))  # Scale opacity reasonably
-                fill_opacity = opacity
-            else:
-                color = '#ffffff'  # White for no data
-                opacity = 0.1
-                fill_opacity = 0.0
-
-            # Store style for this timestamp
-            feature_styles[timestamp_str] = {
-                'color': '#000000',  # Border color (black)
-                'weight': 0.5,  # Border weight
-                'fillColor': color,  # Fill color based on tweet count
-                'fillOpacity': fill_opacity,
-                'opacity': opacity
-            }
-
-        # Use feature index as key (important!)
-        styledict[str(feature_idx)] = feature_styles
-
-    return styledict
-
-
-def create_separate_maps(final_tweets, us_states_gdf, us_counties_gdf, us_cities_gdf):
-    """
-    Create separate maps to avoid conflicts between TimeSliderChoropleth and HeatMapWithTime
-    """
-    # Prepare temporal data
-    final_tweets['time'] = pd.to_datetime(final_tweets['time'])
-    final_tweets['bin'] = final_tweets['time'].dt.floor('4h')
-    time_bins = sorted(final_tweets['bin'].unique())
-
-    temporal_data = create_temporal_aggregations(final_tweets, time_bins, us_states_gdf)
-
-    # Create styledicts with proper timestamps
-    styledata_states = style_dict_process_fixed(time_bins, us_states_gdf, temporal_data, 'states')
-    styledata_counties = style_dict_process_fixed(time_bins, us_counties_gdf, temporal_data, 'counties')
-
-    # Prepare city heatmap data
-    city_heat_data, time_labels = prepare_heatmap_with_time(temporal_data, us_cities_gdf)
-
-    return styledata_states, styledata_counties, city_heat_data, time_labels, time_bins
-
-
-def create_choropleth_map(us_states_gdf, us_counties_gdf, styledata_states, styledata_counties):
-    """
-    Create map with only TimeSliderChoropleth layers
-    """
-    m = folium.Map(location=[32.0, -83.0], zoom_start=6)
-
-    # Add states layer
-    try:
-        states_layer = TimeSliderChoropleth(
-            data=us_states_gdf.to_json(),
-            styledict=styledata_states,
-            name='States Over Time'
-        )
-        states_layer.add_to(m)
-        print("States TimeSliderChoropleth added successfully")
-    except Exception as e:
-        print(f"Error adding states layer: {e}")
-
-    # Add counties layer
-    try:
-        counties_layer = TimeSliderChoropleth(
-            data=us_counties_gdf.to_json(),
-            styledict=styledata_counties,
-            name='Counties Over Time'
-        )
-        counties_layer.add_to(m)
-        print("Counties TimeSliderChoropleth added successfully")
-    except Exception as e:
-        print(f"Error adding counties layer: {e}")
-
-    folium.LayerControl(collapsed=False).add_to(m)
-    return m
-
-
-def create_heatmap_map(city_heat_data, time_labels):
-    """
-    Create separate map with only HeatMapWithTime
-    """
-    m = folium.Map(location=[32.0, -83.0], zoom_start=6)
-
-    if city_heat_data and len(city_heat_data) > 0 and len(time_labels) > 0:
-        try:
-            heatmap_layer = plugins.HeatMapWithTime(
-                data=city_heat_data,
-                index=time_labels,  # Use index parameter for proper time labels
-                auto_play=False,  # Start with manual control
-                max_opacity=0.8,
-                radius=15,
-                name='City Heatmap Over Time'
-            )
-            heatmap_layer.add_to(m)
-            print("HeatMapWithTime added successfully")
-        except Exception as e:
-            print(f"Error creating heatmap: {e}")
-
-    folium.LayerControl().add_to(m)
-    return m
-
-
-def create_combined_map_carefully(us_states_gdf, styledata_states, city_heat_data, time_labels):
-    """
-    Attempt to combine both types, but with careful handling
-    """
-    m = folium.Map(location=[32.0, -83.0], zoom_start=6)
-
-    # Add TimeSliderChoropleth first
-    try:
-        states_layer = TimeSliderChoropleth(
-            data=us_states_gdf.to_json(),
-            styledict=styledata_states,
-            name='States Over Time'
-        )
-        states_layer.add_to(m)
-        print("States layer added to combined map")
-    except Exception as e:
-        print(f"Error adding states to combined map: {e}")
-
-    # Add HeatMapWithTime with different configuration
-    if city_heat_data and len(city_heat_data) > 0:
-        try:
-            # Use different time labels format to avoid conflicts
-            simplified_labels = [f"T{i}" for i in range(len(time_labels))]
-
-            heatmap_layer = plugins.HeatMapWithTime(
-                data=city_heat_data,
-                index=simplified_labels,
-                auto_play=False,
-                max_opacity=0.6,
-                radius=10,
-                name='Cities'
-            )
-            heatmap_layer.add_to(m)
-            print("Heatmap added to combined map")
-        except Exception as e:
-            print(f"Error adding heatmap to combined map: {e}")
-
-    folium.LayerControl(collapsed=False).add_to(m)
-    return m
-
 
 def create_wide_format_shapefile(temporal_data, gdf, output_path, level_name='states'):
     """
@@ -505,7 +300,6 @@ def create_separate_time_shapefiles(temporal_data, gdf, output_directory, level_
         merged_clean.to_file(output_path)
         shapefile_paths.append(output_path)
 
-        print(f"Created: {filename}")
 
     # Create index file listing all shapefiles
     index_path = os.path.join(output_directory, 'shapefile_index.txt')
@@ -515,7 +309,6 @@ def create_separate_time_shapefiles(temporal_data, gdf, output_directory, level_
         for i, (bin_time, path) in enumerate(zip(temporal_data.keys(), shapefile_paths)):
             f.write(f"{i + 1:2d}. {bin_time.strftime('%Y-%m-%d %H:%M')} = {os.path.basename(path)}\n")
 
-    print(f"\nCreated {len(shapefile_paths)} shapefiles in: {output_directory}")
     return shapefile_paths
 
 
@@ -544,7 +337,6 @@ def clean_shapefile_columns(gdf):
 
     if rename_dict:
         result = result.rename(columns=rename_dict)
-        print(f"Renamed columns for shapefile compatibility: {rename_dict}")
 
     return result
 
@@ -616,7 +408,6 @@ def create_qgis_project_file(shapefile_path, time_column, output_path):
     with open(output_path, 'w') as f:
         f.write(qgs_content)
 
-    print(f"QGIS project file created: {output_path}")
 
 def _get_join_cols(level_name: str):
     """
@@ -645,24 +436,6 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
     output_dir = 'temporal_shapefiles'
     os.makedirs(output_dir, exist_ok=True)
 
-    # Option 1: Wide format shapefiles
-    states_wide = create_wide_format_shapefile(
-        temporal_data, us_states_gdf,
-        os.path.join(output_dir, f'{label}_states_wide_format.shp'),
-        'states'
-    )
-
-    counties_wide = create_wide_format_shapefile(
-        temporal_data, us_counties_gdf,
-        os.path.join(output_dir, f'{label}_counties_wide_format.shp'),
-        'counties'
-    )
-    cities_wide = create_wide_format_shapefile(
-        temporal_data, us_cities_gdf,
-        os.path.join(output_dir, f'{label}_cities_wide.shp'),
-        'cities'
-    )
-    # Option 2: Long format shapefiles
     states_long = create_long_format_shapefile(
         temporal_data, us_states_gdf,
         os.path.join(output_dir, f'{label}_states_long_format.shp'),
@@ -675,44 +448,9 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
         'counties'
     )
     cities_long   = create_long_format_shapefile(temporal_data, us_cities_gdf,
-                       os.path.join(output_dir, f'{label}_cities_long.shp'),   'cities')
+                       os.path.join(output_dir, f'{label}_cities_long_v2.shp'),   'cities')
 
-    # Option 3: Separate shapefiles per time period
 
-    create_separate_time_shapefiles(
-        temporal_data, us_states_gdf,
-        os.path.join(output_dir, f'{label}_states_by_time'),
-        'states'
-    )
-
-    create_separate_time_shapefiles(
-        temporal_data, us_counties_gdf,
-        os.path.join(output_dir, f'{label}_counties_by_time'),
-        'counties'
-    )
-
-    create_separate_time_shapefiles(
-        temporal_data, us_cities_gdf,
-        os.path.join(output_dir, f'{label}_cities_by_time'),   'cities')
-
-    # Create QGIS project files for easy loading
-    create_qgis_project_file(
-        os.path.join(output_dir, f'{label}_states_long_format.shp'),
-        'time_str',
-        os.path.join(output_dir, f'{label}_states_temporal.qgs')
-    )
-
-    create_qgis_project_file(
-        os.path.join(output_dir, f'{label}_counties_long_format.shp'),
-        'time_str',
-        os.path.join(output_dir, f'{label}_counties_temporal.qgs')
-    )
-
-    create_qgis_project_file(
-        os.path.join(output_dir, f'{label}_cities_long_format.shp'),
-        'time_str',
-        os.path.join(output_dir, f'{label}_cities_temporal.qgs')
-    )
 
 
 # Keep your existing helper functions but add this updated main function
@@ -731,107 +469,8 @@ def main():
     tweets_with_cities = gpd.sjoin_nearest(tweets_with_counties, us_cities_gdf, max_distance=0.1,
                                            distance_col='distance_to_city').drop_duplicates()
 
-    print(tweets_with_cities)
     final_tweets = clean_and_select_columns(tweets_with_cities)
     convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf,us_cities_gdf, label)
-    # Create temporal data with fixed timestamps
-    # styledata_states, styledata_counties, city_heat_data, time_labels, time_bins = create_separate_maps(
-    #     final_tweets, us_states_gdf, us_counties_gdf, us_cities_gdf
-    # )
-    #
-    # print(f"Created temporal data for {len(time_bins)} time periods")
-    # print(f"First timestamp in styledata: {list(next(iter(styledata_states.values())).keys())[0]}")
-    #
-    # # Create toggleable map using FeatureGroups
-    # toggleable_map = create_toggleable_timeslider_map(us_states_gdf, us_counties_gdf, styledata_states,
-    #                                                   styledata_counties)
-    # toggleable_map.save('toggleable_timeslider.html')
-    # print("Toggleable map saved as 'toggleable_timeslider.html'")
-    #
-    # # Create separate maps to avoid conflicts
-    #
-    # # 1. Choropleth-only map (states and counties)
-    # choropleth_map = create_choropleth_map(us_states_gdf, us_counties_gdf, styledata_states, styledata_counties)
-    # choropleth_map.save('choropleth_timeslider.html')
-    # print("Choropleth map saved as 'choropleth_timeslider.html'")
-    #
-    # # 2. Heatmap-only map (cities)
-    # heatmap_map = create_heatmap_map(city_heat_data, time_labels)
-    # heatmap_map.save('heatmap_timeslider.html')
-    # print("Heatmap map saved as 'heatmap_timeslider.html'")
-    #
-    # print("All maps generated successfully!")
 
 
-def create_toggleable_timeslider_map(us_states_gdf, us_counties_gdf, styledata_states, styledata_counties):
-    """
-    Create map with toggleable TimeSliderChoropleth layers using FeatureGroups
-    """
-    m = folium.Map(location=[32.0, -83.0], zoom_start=6)
 
-    # Create FeatureGroups for each layer
-    states_group = folium.FeatureGroup(name='States Over Time', show=True)
-    counties_group = folium.FeatureGroup(name='Counties Over Time', show=False)  # Start hidden
-
-    # Add TimeSliderChoropleth to FeatureGroups
-    try:
-        states_layer = TimeSliderChoropleth(
-            data=us_states_gdf.to_json(),
-            styledict=styledata_states,
-            name='States Temporal'  # Internal name
-        )
-        states_layer.add_to(states_group)
-        print("States TimeSliderChoropleth added to FeatureGroup")
-    except Exception as e:
-        print(f"Error adding states layer: {e}")
-
-    try:
-        counties_layer = TimeSliderChoropleth(
-            data=us_counties_gdf.to_json(),
-            styledict=styledata_counties,
-            name='Counties Temporal'  # Internal name
-        )
-        counties_layer.add_to(counties_group)
-        print("Counties TimeSliderChoropleth added to FeatureGroup")
-    except Exception as e:
-        print(f"Error adding counties layer: {e}")
-
-    # Add FeatureGroups to map
-    states_group.add_to(m)
-    counties_group.add_to(m)
-
-    # Add LayerControl for toggling
-    folium.LayerControl(
-        collapsed=False,
-        position='topright'
-    ).add_to(m)
-
-    return m
-
-
-# Debug function to inspect timestamp format
-def debug_timestamps(styledata, sample_feature=None):
-    """Debug helper to check timestamp formatting"""
-    if not styledata:
-        print("No styledata provided")
-        return
-
-    # Get first feature's data
-    first_key = list(styledata.keys())[0] if sample_feature is None else str(sample_feature)
-    first_feature_data = styledata[first_key]
-
-    print(f"Feature {first_key} timestamps:")
-    for timestamp, style in list(first_feature_data.items())[:3]:  # Show first 3
-        print(f"  {timestamp}: {style}")
-
-    # Check timestamp format
-    sample_timestamp = list(first_feature_data.keys())[0]
-    print(f"Sample timestamp: '{sample_timestamp}' (type: {type(sample_timestamp)})")
-
-    # Try to convert back to datetime
-    try:
-        import datetime
-        dt = datetime.datetime.fromtimestamp(int(sample_timestamp))
-        print(f"Converts to: {dt}")
-    except:
-        print("Cannot convert timestamp back to datetime")

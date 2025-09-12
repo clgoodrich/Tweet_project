@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata xml:lang="en"><Esri><CreaDate>20250912</CreaDate><CreaTime>13273000</CreaTime><ArcGISFormat>1.0</ArcGISFormat><SyncOnce>TRUE</SyncOnce><DataProperties><lineage><Process ToolSource="c:\program files\arcgis\pro\Resources\ArcToolbox\toolboxes\Data Management Tools.tbx\UpdateSchema" Date="20250912" Time="132730">UpdateSchema "CIMDATA=&lt;CIMStandardDataConnection xsi:type='typens:CIMStandardDataConnection' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns:xs='http://www.w3.org/2001/XMLSchema' xmlns:typens='http://www.esri.com/schemas/ArcGIS/3.5.0'&gt;&lt;WorkspaceFactory&gt;Shapefile&lt;/WorkspaceFactory&gt;&lt;Dataset&gt;francine_cities_long_v2.shp&lt;/Dataset&gt;&lt;DatasetType&gt;esriDTFeatureClass&lt;/DatasetType&gt;&lt;/CIMStandardDataConnection&gt;" &lt;operationSequence&gt;&lt;workflow&gt;&lt;AddField&gt;&lt;field_name&gt;cum&lt;/field_name&gt;&lt;field_type&gt;LONG&lt;/field_type&gt;&lt;field_is_nullable&gt;False&lt;/field_is_nullable&gt;&lt;field_is_required&gt;False&lt;/field_is_required&gt;&lt;/AddField&gt;&lt;/workflow&gt;&lt;/operationSequence&gt;</Process><Process ToolSource="c:\program files\arcgis\pro\Resources\ArcToolbox\toolboxes\Data Management Tools.tbx\CalculateField" Date="20250912" Time="133258">CalculateField francine_cities_long_v2 cum cumulative_by_county(!geonameid!, !tweets!) PYTHON3 "# Global variables to track state
+current_county = ""
+running_total = 0
+
+def cumulative_by_county(county_id, tweet_count):
+    global current_county, running_total
+    
+    # If this is a new county, reset the running total
+    if county_id != current_county:
+        current_county = county_id
+        running_total = 0
+    
+    # Add current tweet count to running total
+    running_total += tweet_count
+    return running_total" TEXT NO_ENFORCE_DOMAINS</Process></lineage></DataProperties></Esri></metadata>
