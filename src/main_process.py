@@ -635,8 +635,6 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
     """
     Main function to convert all your temporal data to shapefiles
     """
-    print("Converting temporal data to shapefiles...")
-
     # Prepare temporal data (same as your existing code)
     final_tweets['time'] = pd.to_datetime(final_tweets['time'])
     final_tweets['bin'] = final_tweets['time'].dt.floor('4h')
@@ -648,7 +646,6 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
     os.makedirs(output_dir, exist_ok=True)
 
     # Option 1: Wide format shapefiles
-    print("\n1. Creating wide format shapefiles...")
     states_wide = create_wide_format_shapefile(
         temporal_data, us_states_gdf,
         os.path.join(output_dir, f'{label}_states_wide_format.shp'),
@@ -666,7 +663,6 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
         'cities'
     )
     # Option 2: Long format shapefiles
-    print("\n2. Creating long format shapefiles...")
     states_long = create_long_format_shapefile(
         temporal_data, us_states_gdf,
         os.path.join(output_dir, f'{label}_states_long_format.shp'),
@@ -682,7 +678,6 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
                        os.path.join(output_dir, f'{label}_cities_long.shp'),   'cities')
 
     # Option 3: Separate shapefiles per time period
-    print("\n3. Creating separate shapefiles per time period...")
 
     create_separate_time_shapefiles(
         temporal_data, us_states_gdf,
@@ -718,34 +713,7 @@ def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties
         'time_str',
         os.path.join(output_dir, f'{label}_cities_temporal.qgs')
     )
-    print(f"\nAll shapefiles created in: {output_dir}")
-    print("\nRecommended usage:")
-    print("- Wide format: Good for ArcGIS Pro time slider")
-    print("- Long format: Good for QGIS temporal controller")
-    print("- Separate files: Good for manual time analysis")
-    # print("\n" + "=" * 50)
-    # print("QGIS SETUP INSTRUCTIONS:")
-    # print("=" * 50)
-    # print("1. Open QGIS")
-    # print("2. Load the *_long_format.shp file")
-    # print("3. Enable Temporal Controller Panel:")
-    # print("   - Go to View menu → Panels → Temporal Controller")
-    # print("   - Or press Ctrl+1 (Windows/Linux) or Cmd+1 (Mac)")
-    # print("   - The temporal panel will appear (usually docked at bottom)")
-    # print("4. Configure layer for time:")
-    # print("   - Right-click layer → Properties → Temporal tab")
-    # print("   - Check 'Dynamic Temporal Control'")
-    # print("   - Set Configuration: 'Single Field with Date/Time'")
-    # print("   - Set Field: 'timestamp' (this is now a proper datetime field)")
-    # print("   - Click OK")
-    # print("5. Use the temporal controls:")
-    # print("   - In Temporal Controller panel, click the green play button")
-    # print("   - Or manually drag the time slider")
-    # print("   - Use step forward/backward buttons for manual control")
-    # print("6. Optional - Set time range:")
-    # print("   - In Temporal Controller, set Fixed Range")
-    # print("   - Choose appropriate time step (e.g., 4 hours)")
-    # print("=" * 50)
+
 
 # Keep your existing helper functions but add this updated main function
 def main():
@@ -762,14 +730,8 @@ def main():
                                      rsuffix='_county')
     tweets_with_cities = gpd.sjoin_nearest(tweets_with_counties, us_cities_gdf, max_distance=0.1,
                                            distance_col='distance_to_city').drop_duplicates()
-    # tweets_with_cities = gpd.sjoin_nearest(
-    #     tweets_with_counties, us_cities_gdf,
-    #     max_distance=0.1,
-    #     how='left',
-    #     distance_col='distance_to_city'
-    # ).sort_values('distance_to_city').drop_duplicates('tweet_id')
+
     print(tweets_with_cities)
-    # Clean data (same as before)
     final_tweets = clean_and_select_columns(tweets_with_cities)
     convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf,us_cities_gdf, label)
     # Create temporal data with fixed timestamps

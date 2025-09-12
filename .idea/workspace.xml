@@ -4,25 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fa08bd6c-ebd5-445d-b4ba-5199d01a26f9" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main_process.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.sbn" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.sbx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.shp.xml" beforeDir="false" afterPath="$PROJECT_DIR$/temporal_shapefiles/francine_counties_long_format.shp.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.sbn" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.sbx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.shp.xml" beforeDir="false" afterPath="$PROJECT_DIR$/temporal_shapefiles/francine_states_long_format.shp.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_cities_long.shp.xml" beforeDir="false" afterPath="$PROJECT_DIR$/temporal_shapefiles/helene_cities_long.shp.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_cities_wide.sbn" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_cities_wide.sbx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_counties_long_format.sbn" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_counties_long_format.sbx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_counties_long_format.shp.xml" beforeDir="false" afterPath="$PROJECT_DIR$/temporal_shapefiles/helene_counties_long_format.shp.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_states_long_format.sbn" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_states_long_format.sbx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temporal_shapefiles/helene_states_long_format.shp.xml" beforeDir="false" afterPath="$PROJECT_DIR$/temporal_shapefiles/helene_states_long_format.shp.xml" afterDir="false" />
-    </list>
+    <list default="true" id="fa08bd6c-ebd5-445d-b4ba-5199d01a26f9" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -203,6 +185,7 @@
       <workItem from="1756401752613" duration="23716000" />
       <workItem from="1757264951777" duration="612000" />
       <workItem from="1757265862690" duration="5204000" />
+      <workItem from="1757616152679" duration="300000" />
     </task>
     <servers />
   </component>
