@@ -60,7 +60,7 @@ for dataset in datasets:
     # Get unique time periods
     time_periods = sorted(gdf['time_str'].unique())
     print(f"Found {len(time_periods)} time periods")
-
+#
     # Project and get bounds
     gdf_proj = gdf.to_crs(epsg=3857)
     bounds_proj = gdf_proj.total_bounds
