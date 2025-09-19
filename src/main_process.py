@@ -429,6 +429,8 @@ def create_long_format_shapefile(temporal_data, gdf, output_path, level_name='st
 
         # Add timestamp columns
         merged['timestamp'] = bin_time
+        print(bin_time)
+        print(foo)
         merged['time_str'] = bin_time.strftime('%Y-%m-%d %H:%M')
         merged['unix_time'] = int(bin_time.timestamp())
 
