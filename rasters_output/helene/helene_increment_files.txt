@@ -9,5 +9,3 @@ C:\Users\colto\Documents\GitHub\Tweet_project\rasters_output\helene\helene_incre
 C:\Users\colto\Documents\GitHub\Tweet_project\rasters_output\helene\helene_increment_1727424000.tif
 C:\Users\colto\Documents\GitHub\Tweet_project\rasters_output\helene\helene_increment_1727438400.tif
 C:\Users\colto\Documents\GitHub\Tweet_project\rasters_output\helene\helene_increment_1727452800.tif
-C:\Users\colto\Documents\GitHub\Tweet_project\rasters_output\helene\helene_increment_19700101_0000.tif
-C:\Users\colto\Documents\GitHub\Tweet_project\rasters_output\helene\helene_increment_19700101_0028.tif
