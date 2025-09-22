@@ -5,7 +5,161 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fa08bd6c-ebd5-445d-b4ba-5199d01a26f9" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/rasters_output/helene/helene_increment_files.txt" beforeDir="false" afterPath="$PROJECT_DIR$/rasters_output/helene/helene_increment_files.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240909_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240909_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240909_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240909_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240910_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240910_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240910_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240910_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240910_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240910_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240911_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240911_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240911_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240911_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240911_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240911_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240912_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240912_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240912_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240912_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240912_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240912_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240913_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240913_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240913_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240913_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240913_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240913_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240914_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240914_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240914_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240914_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240914_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240915_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240915_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240915_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240915_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240915_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240915_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_cumulative/francine_cumulative_20240916_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240909_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240909_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240909_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240909_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240910_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240910_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240910_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240910_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240910_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240910_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240911_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240911_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240911_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240911_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240911_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240911_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240912_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240912_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240912_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240912_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240912_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240912_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240913_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240913_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240913_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240913_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240913_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240913_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240914_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240914_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240914_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240914_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240914_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240915_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240915_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240915_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240915_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240915_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240915_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/francine_freq/francine_freq_20240916_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_cumulative/helene_cumulative_20240926_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_cumulative/helene_cumulative_20240926_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_cumulative/helene_cumulative_20240926_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_cumulative/helene_cumulative_20240926_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_cumulative/helene_cumulative_20240926_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_cumulative/helene_cumulative_20240926_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_cumulative/helene_cumulative_20240927_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_cumulative/helene_cumulative_20240927_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_cumulative/helene_cumulative_20240927_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_cumulative/helene_cumulative_20240927_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_cumulative/helene_cumulative_20240927_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_freq/helene_freq_20240926_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_freq/helene_freq_20240926_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_freq/helene_freq_20240926_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_freq/helene_freq_20240926_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_freq/helene_freq_20240926_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_freq/helene_freq_20240926_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_freq/helene_freq_20240927_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_freq/helene_freq_20240927_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_freq/helene_freq_20240927_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_freq/helene_freq_20240927_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_all/helene_freq/helene_freq_20240927_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative/helene_cumulative_20240926_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative/helene_cumulative_20240926_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative/helene_cumulative_20240926_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative/helene_cumulative_20240926_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative/helene_cumulative_20240926_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative/helene_cumulative_20240926_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative/helene_cumulative_20240927_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative/helene_cumulative_20240927_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative/helene_cumulative_20240927_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative/helene_cumulative_20240927_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative/helene_cumulative_20240927_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240909_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240909_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240909_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240909_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240910_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240910_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240910_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240910_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240910_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240910_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240911_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240911_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240911_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240911_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240911_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240911_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240912_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240912_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240912_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240912_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240912_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240912_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240913_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240913_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240913_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240913_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240913_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240913_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240914_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240914_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240914_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240914_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240914_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240915_000000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240915_040000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240915_080000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240915_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240915_160000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240915_200000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_cumulative_francine/francine_cumulative_20240916_120000.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rasters_output/francine/francine_increment_files.txt" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/process_v3.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/src/process_v3.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -24,7 +178,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="reworked_style" />
+        <entry key="$PROJECT_DIR$" value="version_2" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -49,27 +203,27 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.cities_importer.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main_process.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test_rasters.executor&quot;: &quot;Run&quot;,
-    &quot;Python.tester_main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;version__2&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.cities_importer.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.main_process.executor": "Run",
+    "Python.test_rasters.executor": "Run",
+    "Python.tester_main.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "version__3",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.keymap",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Python.main_process">
     <configuration name="cities_importer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Tweet_project" />
@@ -314,6 +468,7 @@
       <workItem from="1758142495582" duration="4973000" />
       <workItem from="1758151562796" duration="11197000" />
       <workItem from="1758300647388" duration="14586000" />
+      <workItem from="1758375986329" duration="14689000" />
     </task>
     <servers />
   </component>
