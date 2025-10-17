@@ -17,7 +17,6 @@ Example command line usage::
         --grid-sr 5070 \
         --cell-km 5 \
         --time-step "1 Days" \
-        --temporal-json-root path/to/data/geojson/temporal \
         --n-jobs 4
 
 """
@@ -27,7 +26,6 @@ import argparse
 import contextlib
 import csv
 import datetime as dt
-import json
 import logging
 import math
 import os
@@ -56,8 +54,6 @@ POLY_WEIGHTS = {
     "cities": 1.0,
 }
 FACILITY_WEIGHT = 5.0
-
-TEMPORAL_METADATA_FILENAME_TEMPLATE = "{level}_temporal_metadata.json"
 
 
 # ---------------------------------------------------------------------------
@@ -578,68 +574,17 @@ def qc_exports(
 # ---------------------------------------------------------------------------
 
 
-def _feature_time_range(feature_class: str, time_field: str, logger: logging.Logger) -> Optional[Tuple[dt.datetime, dt.datetime]]:
+def _feature_time_range(feature_class: str, time_field: str) -> Optional[Tuple[dt.datetime, dt.datetime]]:
     if not feature_class or not arcpy.Exists(feature_class):
         return None
-
-    field_names = {field.name for field in arcpy.ListFields(feature_class)}
-    if time_field not in field_names:
-        logger.warning("Time field %s not found on %s; will try metadata instead", time_field, feature_class)
-        return None
-
     values: List[dt.datetime] = []
-    try:
-        with arcpy.da.SearchCursor(feature_class, [time_field]) as cursor:
-            for (value,) in cursor:
-                if value:
-                    values.append(value)
-    except Exception as exc:  # pragma: no cover - ArcPy specific handling
-        logger.warning("Failed to read %s values from %s: %s", time_field, feature_class, exc)
-        return None
-
+    with arcpy.da.SearchCursor(feature_class, [time_field]) as cursor:
+        for (value,) in cursor:
+            if value:
+                values.append(value)
     if not values:
         return None
     return min(values), max(values)
-
-
-def _load_time_range_from_metadata(level: str, metadata_root: Optional[str], logger: logging.Logger) -> Optional[Tuple[dt.datetime, dt.datetime]]:
-    if not metadata_root:
-        return None
-
-    filename = TEMPORAL_METADATA_FILENAME_TEMPLATE.format(level=level)
-    path = os.path.join(metadata_root, filename)
-    if not os.path.exists(path):
-        return None
-
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            metadata = json.load(handle)
-    except (OSError, json.JSONDecodeError) as exc:
-        logger.warning("Failed to read temporal metadata for %s: %s", level, exc)
-        return None
-
-    if "time_range" in metadata:
-        time_range = metadata["time_range"]
-        try:
-            start = dt.datetime.fromisoformat(time_range["start"])
-            end = dt.datetime.fromisoformat(time_range["end"])
-            logger.info("Loaded %s time range from metadata: %s -> %s", level, start, end)
-            return start, end
-        except (KeyError, ValueError) as exc:
-            logger.warning("Invalid time_range block in metadata for %s: %s", level, exc)
-
-    if "temporal_index" in metadata:
-        try:
-            times = [dt.datetime.fromisoformat(item["time"]) for item in metadata["temporal_index"]]
-        except (TypeError, ValueError, KeyError) as exc:
-            logger.warning("Invalid temporal_index values in metadata for %s: %s", level, exc)
-            return None
-        if times:
-            logger.info("Loaded %s time range from temporal index: %s -> %s", level, min(times), max(times))
-            return min(times), max(times)
-
-    logger.info("No usable temporal metadata for %s at %s", level, path)
-    return None
 
 
 def determine_time_extent(
@@ -727,12 +672,6 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--start-time", dest="start_time", help="Start time ISO-8601 (optional)")
     parser.add_argument("--end-time", dest="end_time", help="End time ISO-8601 (optional)")
     parser.add_argument("--kde-bandwidth-m", dest="kde_bandwidth_m", type=float, default=0.0, help="Facility kernel density bandwidth in meters (0 to disable)")
-    parser.add_argument(
-        "--temporal-json-root",
-        dest="temporal_json_root",
-        help="Folder containing temporal metadata JSON files (e.g., states_temporal_metadata.json)",
-        default=None,
-    )
     parser.add_argument("--n-jobs", dest="n_jobs", type=int, default=1, help="Parallel processing factor")
     return parser.parse_args(argv)
 
@@ -773,31 +712,10 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
 
             fishnet_fc = make_fishnet(extent, grid_sr, args.cell_km, args.workspace_gdb, logger)
 
-            metadata_root = args.temporal_json_root
-            if metadata_root:
-                if os.path.isdir(metadata_root):
-                    logger.info("Temporal metadata root: %s", metadata_root)
-                else:
-                    logger.warning("Temporal metadata root does not exist: %s", metadata_root)
-            time_ranges: List[Tuple[dt.datetime, dt.datetime]] = []
-            inputs_with_levels = [
-                ("states", projected_states),
-                ("counties", projected_counties),
-                ("cities", projected_cities),
-                ("facilities", projected_facilities),
+            time_ranges = [
+                _feature_time_range(fc, args.time_field)
+                for fc in [projected_states, projected_counties, projected_cities, projected_facilities]
             ]
-            for level, fc in inputs_with_levels:
-                fc_range = _feature_time_range(fc, args.time_field, logger)
-                metadata_range = _load_time_range_from_metadata(level, metadata_root, logger) if metadata_root else None
-                combined_range: Optional[Tuple[dt.datetime, dt.datetime]] = None
-                if fc_range and metadata_range:
-                    combined_range = (min(fc_range[0], metadata_range[0]), max(fc_range[1], metadata_range[1]))
-                elif fc_range:
-                    combined_range = fc_range
-                elif metadata_range:
-                    combined_range = metadata_range
-                if combined_range:
-                    time_ranges.append(combined_range)
             start_time, end_time = determine_time_extent(
                 time_ranges,
                 args.start_time,
