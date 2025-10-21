@@ -1,524 +1,460 @@
-import geopandas as gpd
-import pandas as pd
-import os
-pd.set_option('display.max_columns', None)
+# =============================================================================
+# DATA LOADING AND PREPROCESSING
+# This cell handles the initial loading and preparation of the hurricane tweet data.
+# Key steps include:
+# 1. Importing necessary libraries for data manipulation, file paths, and time handling.
+# 2. Constructing file paths to the GeoJSON data for Hurricanes Francine and Helene.
+# 3. Loading the spatial data into GeoDataFrames.
+# 4. Standardizing all timestamps to Coordinated Universal Time (UTC).
+# 5. Aggregating the data into discrete 4-hour time bins for temporal analysis.
+# 6. Creating various time-related columns (Unix timestamps, readable labels) for later use.
+# =============================================================================
+
+# Import core libraries
+import geopandas as gpd  # Used for working with geospatial data.
+import pandas as pd      # Used for data manipulation and analysis in DataFrames.
+import os                # Provides a way of using operating system dependent functionality, like file paths.
+from datetime import datetime, timezone # Used for handling date and time objects.
+from fuzzywuzzy import fuzz, process
+import re
+import numpy as np
+import rasterio
+from rasterio.transform import from_bounds
+import rasterize
+# Configuration
+TARGET_CRS = 'EPSG:3857'  # Web Mercator
+CELL_SIZE_M = 1000  # 5 km in meters
+def preprocess_place_name(name):
+    """Standardize place names for better matching"""
+    if pd.isna(name) or name == 'NAN':
+        return None
+
+    name = str(name).upper().strip()
+
+    # Common abbreviation standardizations
+    name = re.sub(r'\bST\.?\b', 'SAINT', name)  # St. -> Saint
+    name = re.sub(r'\bMT\.?\b', 'MOUNT', name)  # Mt. -> Mount
+    name = re.sub(r'\bFT\.?\b', 'FORT', name)   # Ft. -> Fort
+    name = re.sub(r'\bN\.?\b', 'NORTH', name)   # N. -> North
+    name = re.sub(r'\bS\.?\b', 'SOUTH', name)   # S. -> South
+    name = re.sub(r'\bE\.?\b', 'EAST', name)    # E. -> East
+    name = re.sub(r'\bW\.?\b', 'WEST', name)    # W. -> West
+
+    # Remove extra spaces and punctuation
+    name = re.sub(r'[^\w\s]', '', name)  # Remove punctuation
+    name = re.sub(r'\s+', ' ', name)     # Normalize spaces
+
+    return name.strip()
+
+def parse_gpe_entities(gpe_string):
+    """Parse GPE string into multiple potential geographic entities"""
+    if not gpe_string or pd.isna(gpe_string) or str(gpe_string).strip() == '':
+        return []
+
+    gpe_string = str(gpe_string).strip()
+
+    # Split by common separators
+    entities = []
+
+    # Primary split by comma
+    parts = [part.strip() for part in gpe_string.split(',')]
+
+    for part in parts:
+        if part:
+            # Further split by other separators
+            sub_parts = re.split(r'[;&|]', part)
+            for sub_part in sub_parts:
+                sub_part = sub_part.strip()
+                if sub_part and len(sub_part) > 1:  # Ignore single characters
+                    entities.append(preprocess_place_name(sub_part))
+
+    # Remove None values and duplicates while preserving order
+    clean_entities = []
+    seen = set()
+    for entity in entities:
+        if entity and entity not in seen:
+            clean_entities.append(entity)
+            seen.add(entity)
+
+    return clean_entities
+
+def create_hierarchical_lookups(states_gdf, counties_gdf, cities_gdf):
+    """Create hierarchical lookup dictionaries for fuzzy matching"""
+    print("\nCreating hierarchical lookup dictionaries...")
+
+    # 1. States - simple lookup with preprocessed names + abbreviations
+    state_lookup = {}
+    state_abbrev_to_name = {}  # Abbreviation to full name
+    state_name_to_abbrev = {}  # Full name to abbreviation
+
+    for idx, row in states_gdf.iterrows():
+        state_name = preprocess_place_name(row['NAME'])
+        if state_name:
+            state_lookup[state_name] = row.geometry
+            # Handle abbreviations if available
+            if 'STUSPS' in row:
+                abbrev = row['STUSPS'].upper()
+                state_abbrev_to_name[abbrev] = state_name
+                state_name_to_abbrev[state_name] = abbrev
+                # Also add abbreviation as a lookup option
+                state_lookup[abbrev] = row.geometry
+
+    # 2. Counties - organized by state
+    county_by_state = {}
+    county_lookup = {}
 
+    for idx, row in counties_gdf.iterrows():
+        county_name = preprocess_place_name(row['NAME'])
+        state_fips = row.get('STATEFP', '')
 
-def get_project_root():
-    """Gets the absolute path to the project's root folder."""
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if county_name:
+            county_lookup[county_name] = row.geometry
 
-
-def get_data_file_path(*path_segments):
-    """Builds a full path to any data file from the project root."""
-    project_root = get_project_root()
-    return os.path.join(project_root, *path_segments)
-
-
-def get_geojson(label):
-    """Get path to helene.geojson"""
-    geojson = get_data_file_path('data', 'geojson', f'{label}.geojson')
-    return gpd.read_file(geojson)
-
-
-def get_cities():
-    df_path = get_data_file_path('data', 'tables', 'cities1000.csv')
-    df = pd.read_csv(df_path)
-    us_cities_df = df[
-        (df['country_code'] == 'US') &
-        (df['feature_class'] == 'P') &
-        (df['population'].notna()) &
-        (df['latitude'].notna()) &
-        (df['longitude'].notna())
-        ].reset_index(drop=True)
-
-    us_cities_gdf = gpd.GeoDataFrame(
-        us_cities_df,
-        geometry=gpd.points_from_xy(us_cities_df.longitude, us_cities_df.latitude),
-        crs="EPSG:4326"
-    )
-    return us_cities_gdf
-
-
-def get_states():
-    gdf_path = get_data_file_path('data', 'shape_files', "cb_2023_us_state_20m.shp")
-    return gpd.read_file(gdf_path)
-
-
-def get_counties():
-    gdf_path = get_data_file_path('data', 'shape_files', "cb_2023_us_county_20m.shp")
-    return gpd.read_file(gdf_path)
-
-
-def clean_and_select_columns(tweets_with_cities):
-    """Select and rename essential columns"""
-    cleaned = tweets_with_cities[[
-        'FAC', 'LOC', 'GPE', 'time', 'Latitude', 'Longitude',
-        'STUSPS__tweet', 'NAME__tweet', 'NAME__county', 'GEOID__county',
-        'name', 'geonameid', 'population'
-    ]].copy()
-
-    cleaned = cleaned.rename(columns={
-        'STUSPS__tweet': 'state_code',
-        'NAME__tweet': 'state_name',
-        'NAME__county': 'county_name',
-        'GEOID__county': 'county_fips',
-        'name': 'city_name',
-        'geonameid': 'city_id'
-    })
-
-    return cleaned
-
-
-
-
-
-def create_temporal_aggregations(tweets_df, time_bins, us_states_gdf):
-    """Create aggregated counts for each time bin"""
-    temporal_data = {}
-
-    for bin_time in time_bins:
-        bin_tweets = tweets_df[tweets_df['bin'] == bin_time]
-
-        state_counts = bin_tweets.groupby('state_code').size().reset_index(name='tweet_count')
-        county_counts = bin_tweets.groupby('county_fips').size().reset_index(name='tweet_count')
-        city_counts = bin_tweets.groupby('city_id').size().reset_index(name='tweet_count')
-
-        temporal_data[bin_time] = {
-            'states': state_counts,
-            'counties': county_counts,
-            'cities': city_counts
-        }
-
-    return temporal_data
-
-def create_wide_format_shapefile(temporal_data, gdf, output_path, level_name='states'):
-    """
-    Option 1: Create shapefile with time columns (wide format)
-    Each time period becomes a separate column
-
-    Args:
-        temporal_data: Your temporal aggregation data
-        gdf: GeoDataFrame (states or counties)
-        output_path: Where to save the shapefile
-        level_name: 'states' or 'counties'
-    """
-    # Start with the original GeoDataFrame
-    result_gdf = gdf.copy()
-
-    # Get the appropriate join columns
-    join_col, data_col = _get_join_cols(level_name)
-
-    # Add a column for each time period
-    for bin_time, counts_data in temporal_data.items():
-        # Create column name (shapefile field names have 10 char limit)
-        col_name = f"t_{bin_time.strftime('%m%d_%H%M')}"
-
-        # Get counts for this time period
-        time_counts = counts_data[level_name]
-
-        # Merge with result_gdf to get tweet counts
-        merged = result_gdf.merge(
-            time_counts,
-            left_on=join_col,
-            right_on=data_col,
-            how='left'
-        )
-
-        # Add the tweet count column (fill NaN with 0)
-        result_gdf[col_name] = merged['tweet_count'].fillna(0)
-
-    # Clean up column names for shapefile compatibility
-    result_gdf = clean_shapefile_columns(result_gdf)
-
-    # Save as shapefile
-    result_gdf.to_file(output_path)
-    print(f"Wide format shapefile saved: {output_path}")
-
-    # Create metadata file explaining the time columns
-    metadata_path = output_path.replace('.shp', '_metadata.txt')
-    with open(metadata_path, 'w') as f:
-        f.write("Time Column Mappings:\n")
-        f.write("=" * 30 + "\n")
-        for bin_time in temporal_data.keys():
-            col_name = f"t_{bin_time.strftime('%m%d_%H%M')}"
-            f.write(f"{col_name} = {bin_time.strftime('%Y-%m-%d %H:%M')}\n")
-
-    return result_gdf
-
-
-def create_long_format_shapefile(temporal_data, gdf, output_path, level_name='states'):
-    """
-    Option 2: Create shapefile with repeated geometries (long format)
-    Each geometry appears once per time period
-
-    Args:
-        temporal_data: Your temporal aggregation data
-        gdf: GeoDataFrame (states or counties)
-        output_path: Where to save the shapefile
-        level_name: 'states' or 'counties'
-    """
-    all_records = []
-
-    # Get the appropriate join columns
-    join_col, data_col = _get_join_cols(level_name)
-    # For each time period, create records
-    for bin_time, counts_data in temporal_data.items():
-        time_counts = counts_data[level_name]
-
-        # Merge with GeoDataFrame
-        merged = gdf.merge(
-            time_counts,
-            left_on=join_col,
-            right_on=data_col,
-            how='left'
-        )
-
-        # Fill NaN tweet counts with 0
-        merged['tweet_count'] = merged['tweet_count'].fillna(0)
-
-        # Add timestamp columns
-        merged['timestamp'] = bin_time
-        print(bin_time)
-        merged['time_str'] = bin_time.strftime('%Y-%m-%d %H:%M')
-        merged['unix_time'] = int(bin_time.timestamp())
-
-        # Keep essential columns + geometry
-        essential_cols = [join_col, 'NAME', 'geometry', 'timestamp', 'time_str', 'unix_time', 'tweet_count']
-        if level_name == 'counties':
-            essential_cols.append('STATEFP')  # State FIPS for counties
-
-        # Filter to existing columns
-        available_cols = [col for col in essential_cols if col in merged.columns]
-        merged_clean = merged[available_cols].copy()
-
-        all_records.append(merged_clean)
-
-    # Combine all time periods
-    result_gdf = pd.concat(all_records, ignore_index=True)
-
-    # Clean column names for shapefile
-    result_gdf = clean_shapefile_columns(result_gdf)
-
-    # Save as shapefile
-    result_gdf.to_file(output_path)
-    print(f"Long format shapefile saved: {output_path}")
-    print(f"Total records: {len(result_gdf)} (geometries × time periods)")
-
-    return result_gdf
-
-
-def create_separate_time_shapefiles(temporal_data, gdf, output_directory, level_name='states'):
-    """
-    Option 3: Create separate shapefile for each time period
-
-    Args:
-        temporal_data: Your temporal aggregation data
-        gdf: GeoDataFrame (states or counties)
-        output_directory: Directory to save shapefiles
-        level_name: 'states' or 'counties'
-    """
-    os.makedirs(output_directory, exist_ok=True)
-
-    # Get the appropriate join columns
-    join_col, data_col = _get_join_cols(level_name)
-
-    shapefile_paths = []
-
-    for bin_time, counts_data in temporal_data.items():
-        # Create filename
-        time_str = bin_time.strftime('%Y%m%d_%H%M')
-        filename = f"{level_name}_{time_str}.shp"
-        output_path = os.path.join(output_directory, filename)
-
-        # Get counts for this time period
-        time_counts = counts_data[level_name]
-
-        # Merge with GeoDataFrame
-        merged = gdf.merge(
-            time_counts,
-            left_on=join_col,
-            right_on=data_col,
-            how='left'
-        )
-
-        # Fill NaN with 0
-        merged['tweet_count'] = merged['tweet_count'].fillna(0)
-
-        # Add timestamp info
-        merged['timestamp'] = bin_time.strftime('%Y-%m-%d %H:%M')
-        merged['unix_time'] = int(bin_time.timestamp())
-
-        # Clean column names
-        merged_clean = clean_shapefile_columns(merged)
-
-        # Save shapefile
-        merged_clean.to_file(output_path)
-        shapefile_paths.append(output_path)
-
-        print(f"Created: {filename}")
-
-    # Create index file listing all shapefiles
-    index_path = os.path.join(output_directory, 'shapefile_index.txt')
-    with open(index_path, 'w') as f:
-        f.write("Temporal Shapefiles Index\n")
-        f.write("=" * 30 + "\n")
-        for i, (bin_time, path) in enumerate(zip(temporal_data.keys(), shapefile_paths)):
-            f.write(f"{i + 1:2d}. {bin_time.strftime('%Y-%m-%d %H:%M')} = {os.path.basename(path)}\n")
-
-    print(f"\nCreated {len(shapefile_paths)} shapefiles in: {output_directory}")
-    return shapefile_paths
-
-
-def clean_shapefile_columns(gdf):
-    """
-    Clean column names to be shapefile-compatible
-    Shapefiles have 10-character field name limits
-    """
-    result = gdf.copy()
-
-    # Rename long column names
-    rename_dict = {}
-    for col in result.columns:
-        if col == 'geometry':
-            continue
-        if len(col) > 10:
-            # Create shortened version
-            if 'tweet_count' in col:
-                rename_dict[col] = 'tweets'
-            elif 'timestamp' in col:
-                rename_dict[col] = 'time_stamp'
-            elif col.startswith('t_'):
-                rename_dict[col] = col[:10]  # Keep first 10 chars
+            # Try to get state name from STATEFP or other fields
+            state_name = None
+            if 'STATE_NAME' in row:
+                state_name = preprocess_place_name(row['STATE_NAME'])
             else:
-                rename_dict[col] = col[:10]
+                # Try to find state by FIPS code
+                for s_idx, s_row in states_gdf.iterrows():
+                    if s_row.get('STATEFP', '') == state_fips:
+                        state_name = preprocess_place_name(s_row['NAME'])
+                        break
 
-    if rename_dict:
-        result = result.rename(columns=rename_dict)
-        print(f"Renamed columns for shapefile compatibility: {rename_dict}")
+            if state_name:
+                if state_name not in county_by_state:
+                    county_by_state[state_name] = {}
+                county_by_state[state_name][county_name] = row.geometry
 
-    return result
+    # 3. Cities - organized by state
+    city_by_state = {}
+    city_lookup = {}
+
+    for idx, row in cities_gdf.iterrows():
+        city_name = preprocess_place_name(row['NAME'])
+        state_abbrev = row.get('ST', '').upper()
+
+        if city_name:
+            city_lookup[city_name] = row.geometry
+
+            # Convert state abbreviation to full name
+            if state_abbrev in state_abbrev_to_name:
+                state_full = state_abbrev_to_name[state_abbrev]
+                if state_full not in city_by_state:
+                    city_by_state[state_full] = {}
+                city_by_state[state_full][city_name] = row.geometry
+    #
 
 
-def create_qgis_project_file(shapefile_path, time_column, output_path):
+    return {
+        'state_lookup': state_lookup,
+        'county_lookup': county_lookup,
+        'city_lookup': city_lookup,
+        'county_by_state': county_by_state,
+        'city_by_state': city_by_state,
+        'state_abbrev_to_name': state_abbrev_to_name,
+        'state_name_to_abbrev': state_name_to_abbrev
+    }
+
+def fuzzy_match_entity(entity, candidates, threshold=75):
+    """Fuzzy match an entity against candidates"""
+    if not entity or not candidates:
+        return None, 0
+
+    # Try exact match first
+    if entity in candidates:
+        return entity, 100
+
+    # Use fuzzy matching
+    match = process.extractOne(entity, candidates.keys(), scorer=fuzz.ratio)
+
+    if match and match[1] >= threshold:
+        return match[0], match[1]
+
+    return None, 0
+
+def find_all_geographic_matches(entities, lookups):
+    """Find ALL geographic matches (state, county, city) for the entities"""
+    if not entities:
+        return []
+
+    state_lookup = lookups['state_lookup']
+    county_lookup = lookups['county_lookup']
+    city_lookup = lookups['city_lookup']
+    county_by_state = lookups['county_by_state']
+    city_by_state = lookups['city_by_state']
+
+    # Store all successful matches
+    all_matches = []
+
+    # Context tracking for better matching
+    found_states = set()
+
+    # STEP 1: Find all state matches first
+    for entity in entities:
+        state_match, state_score = fuzzy_match_entity(entity, state_lookup, threshold=75)
+        if state_match:
+            all_matches.append(('STATE', state_match, state_lookup[state_match], state_score))
+            found_states.add(state_match)
+
+    # STEP 2: Find county matches (global first, then state-specific)
+    for entity in entities:
+        # Global county search
+        county_match, county_score = fuzzy_match_entity(entity, county_lookup, threshold=75)
+        if county_match:
+            all_matches.append(('COUNTY', county_match, county_lookup[county_match], county_score))
+
+        # State-specific county search (higher accuracy)
+        for state_name in found_states:
+            if state_name in county_by_state:
+                state_counties = county_by_state[state_name]
+                state_county_match, state_county_score = fuzzy_match_entity(entity, state_counties, threshold=70)
+                if state_county_match and state_county_score > county_score:
+                    # Replace with better state-specific match
+                    # Remove the global match if it exists
+                    all_matches = [m for m in all_matches if not (m[0] == 'COUNTY' and m[1] == county_match)]
+                    all_matches.append(('COUNTY', state_county_match, state_counties[state_county_match], state_county_score))
+
+    # STEP 3: Find city matches (global first, then state-specific)
+    for entity in entities:
+        # Global city search
+        city_match, city_score = fuzzy_match_entity(entity, city_lookup, threshold=75)
+        if city_match:
+            all_matches.append(('CITY', city_match, city_lookup[city_match], city_score))
+
+        # State-specific city search (higher accuracy)
+        for state_name in found_states:
+            if state_name in city_by_state:
+                state_cities = city_by_state[state_name]
+                state_city_match, state_city_score = fuzzy_match_entity(entity, state_cities, threshold=70)
+                if state_city_match and state_city_score > city_score:
+                    # Replace with better state-specific match
+                    # Remove the global match if it exists
+                    all_matches = [m for m in all_matches if not (m[0] == 'CITY' and m[1] == city_match)]
+                    all_matches.append(('CITY', state_city_match, state_cities[state_city_match], state_city_score))
+
+    # Remove duplicates (same scale + name)
+    unique_matches = []
+    seen_combinations = set()
+    for match in all_matches:
+        combo = (match[0], match[1])  # (scale, name)
+        if combo not in seen_combinations:
+            unique_matches.append(match)
+            seen_combinations.add(combo)
+
+    return unique_matches
+
+def multi_level_assign_scale_levels(row, lookups):
     """
-    Create a QGIS project file (.qgs) with temporal settings pre-configured
-    This makes it easier to load the temporal data in QGIS
+    Return ALL geographic scale levels that match this tweet
+    Returns a list of matches: [(scale, name, geom, score), ...]
     """
-    qgs_content = f'''<?xml version="1.0" encoding="UTF-8"?>
-<qgis version="3.22.0" projectname="">
-  <homePath path=""/>
-  <title></title>
-  <autotransaction active="0"/>
-  <evaluateDefaultValues active="0"/>
-  <trust active="0"/>
-  <projectCrs>
-    <spatialrefsys>
-      <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["Horizontal component of 3D system."],AREA["World."],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
-      <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
-      <srsid>3452</srsid>
-      <srid>4326</srid>
-      <authid>EPSG:4326</authid>
-      <description>WGS 84</description>
-    </spatialrefsys>
-  </projectCrs>
-  <layer-tree-group>
-    <customproperties/>
-    <layer-tree-layer expanded="1" checked="Qt::Checked" id="temporal_layer" name="Temporal Data" source="{shapefile_path}" providerKey="ogr">
-      <customproperties/>
-    </layer-tree-layer>
-  </layer-tree-group>
-  <mapcanvas annotationsVisible="1" name="theMapCanvas">
-    <units>degrees</units>
-    <extent>
-      <xmin>-180</xmin>
-      <ymin>-90</ymin>
-      <xmax>180</xmax>
-      <ymax>90</ymax>
-    </extent>
-  </mapcanvas>
-  <maplayers>
-    <maplayer hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" maxScale="0" type="vector" styleCategories="AllStyleCategories" refreshOnNotifyMessage="" minScale="100000000" autoRefreshEnabled="0" geometry="Polygon" autoRefreshTime="0">
-      <id>temporal_layer</id>
-      <datasource>{shapefile_path}</datasource>
-      <keywordList>
-        <value></value>
-      </keywordList>
-      <layername>Temporal Data</layername>
-      <srs>
-        <spatialrefsys>
-          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["Horizontal component of 3D system."],AREA["World."],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
-          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
-          <srsid>3452</srsid>
-          <srid>4326</srid>
-          <authid>EPSG:4326</authid>
-          <description>WGS 84</description>
-        </spatialrefsys>
-      </srs>
-      <temporalProperties>
-        <enabled>1</enabled>
-        <mode>0</mode>
-        <startField>{time_column}</startField>
-      </temporalProperties>
-    </maplayer>
-  </maplayers>
-</qgis>'''
+    gpe = str(row.get('GPE', '')).strip()
+    fac = str(row.get('FAC', '')).strip()
 
-    with open(output_path, 'w') as f:
-        f.write(qgs_content)
+    matches = []
 
-    print(f"QGIS project file created: {output_path}")
+    # Parse GPE into multiple entities
+    entities = parse_gpe_entities(gpe)
 
-def _get_join_cols(level_name: str):
+    if entities:
+        # Find all geographic matches
+        geo_matches = find_all_geographic_matches(entities, lookups)
+        matches.extend(geo_matches)
+
+    # Add facility as separate match if available
+    if fac and fac not in ['nan', 'NAN', '']:
+        matches.append(('FACILITY', fac, row.geometry, 100))
+
+    # If no matches found, return unmatched
+    if not matches:
+        matches.append(('UNMATCHED', None, row.geometry, 0))
+
+    return matches
+
+def expand_tweets_by_matches(gdf, lookups, dataset_name):
     """
-    Return (join_col_on_geometry, data_col_on_temporal_counts)
+    Expand the GeoDataFrame so each tweet creates multiple rows (one per geographic match)
     """
-    if level_name == 'states':
-        return 'STUSPS', 'state_code'
-    elif level_name == 'counties':
-        return 'GEOID', 'county_fips'
-    elif level_name == 'cities':
-        return 'geonameid', 'city_id'
-    else:
-        raise ValueError(f"Unknown level_name: {level_name}")
+    print(f"\nExpanding {dataset_name} tweets by geographic matches...")
 
-def convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf,us_cities_gdf, label):
-    """
-    Main function to convert all your temporal data to shapefiles
-    """
-    print("Converting temporal data to shapefiles...")
+    expanded_rows = []
 
-    # Prepare temporal data (same as your existing code)
-    final_tweets['time'] = pd.to_datetime(final_tweets['time'])
-    final_tweets['bin'] = final_tweets['time'].dt.floor('4h')
-    time_bins = sorted(final_tweets['bin'].unique())
-    temporal_data = create_temporal_aggregations(final_tweets, time_bins, us_states_gdf)
+    for idx, row in gdf.iterrows():
+        if idx % 100 == 0:
+            print(idx)
+        matches = multi_level_assign_scale_levels(row, lookups)
 
-    # Create output directory
-    output_dir = 'temporal_shapefiles'
-    os.makedirs(output_dir, exist_ok=True)
+        # Create one row per match
+        for scale, name, geom, score in matches:
+            new_row = row.copy()
+            new_row['scale_level'] = scale
+            new_row['matched_name'] = name
+            new_row['matched_geom'] = geom
+            new_row['match_score'] = score
+            new_row['original_index'] = idx  # Track original tweet
+            expanded_rows.append(new_row)
 
-    # Option 1: Wide format shapefiles
-    print("\n1. Creating wide format shapefiles...")
-    states_wide = create_wide_format_shapefile(
-        temporal_data, us_states_gdf,
-        os.path.join(output_dir, f'{label}_states_wide_format.shp'),
-        'states'
-    )
+    # Create new GeoDataFrame and preserve the original CRS
+    expanded_gdf = gpd.GeoDataFrame(expanded_rows, crs=gdf.crs)
 
-    counties_wide = create_wide_format_shapefile(
-        temporal_data, us_counties_gdf,
-        os.path.join(output_dir, f'{label}_counties_wide_format.shp'),
-        'counties'
-    )
-    cities_wide = create_wide_format_shapefile(
-        temporal_data, us_cities_gdf,
-        os.path.join(output_dir, f'{label}_cities_wide.shp'),
-        'cities'
-    )
-    # Option 2: Long format shapefiles
-    print("\n2. Creating long format shapefiles...")
-    states_long = create_long_format_shapefile(
-        temporal_data, us_states_gdf,
-        os.path.join(output_dir, f'{label}_states_long_format.shp'),
-        'states'
-    )
+    # Show some examples of multi-level matches
+    print(f"  Sample multi-level matches:")
+    # Group by original tweet and show ones with multiple matches
+    multi_matches = expanded_gdf.groupby('original_index').size()
+    multi_match_indices = multi_matches[multi_matches > 1].head(5).index
 
-    counties_long = create_long_format_shapefile(
-        temporal_data, us_counties_gdf,
-        os.path.join(output_dir, f'{label}_counties_long_format.shp'),
-        'counties'
-    )
-    cities_long   = create_long_format_shapefile(temporal_data, us_cities_gdf,
-                       os.path.join(output_dir, f'{label}_cities_long.shp'),   'cities')
+    for orig_idx in multi_match_indices:
+        tweet_matches = expanded_gdf[expanded_gdf['original_index'] == orig_idx]
+        original_gpe = tweet_matches.iloc[0]['GPE']
+        match_summary = ', '.join([f"{row['scale_level']}:{row['matched_name']}" for _, row in tweet_matches.iterrows()])
+        # print(f"    '{original_gpe}' → {match_summary}")
 
-    # Option 3: Separate shapefiles per time period
-    print("\n3. Creating separate shapefiles per time period...")
+    return expanded_gdf
 
-    create_separate_time_shapefiles(
-        temporal_data, us_states_gdf,
-        os.path.join(output_dir, f'{label}_states_by_time'),
-        'states'
-    )
+# =============================================================================
+# EXECUTE MULTI-LEVEL FUZZY MATCHING
+# =============================================================================
+# --- 1. Load GeoJSON files ---
+# Get the parent directory of the current working directory to build relative paths.
+# This makes the script more portable as it doesn't rely on a hardcoded absolute path.
 
-    create_separate_time_shapefiles(
-        temporal_data, us_counties_gdf,
-        os.path.join(output_dir, f'{label}_counties_by_time'),
-        'counties'
-    )
+local_path = os.path.dirname(os.getcwd())
+states_dir = r"\data\shape_files\cb_2023_us_state_20m.shp"
+counties_dir = r"\data\shape_files\cb_2023_us_county_20m.shp"
+cities_dir = r"\data\shape_files\US_Cities.shp"
+states_path = f"{local_path}{states_dir}"
+counties_path = f"{local_path}{counties_dir}"
+cities_path = f"{local_path}{cities_dir}"
 
-    create_separate_time_shapefiles(
-        temporal_data, us_cities_gdf,
-        os.path.join(output_dir, f'{label}_cities_by_time'),   'cities')
 
-    # Create QGIS project files for easy loading
-    create_qgis_project_file(
-        os.path.join(output_dir, f'{label}_states_long_format.shp'),
-        'time_str',
-        os.path.join(output_dir, f'{label}_states_temporal.qgs')
-    )
+# Load spatial reference data
+states_gdf = gpd.read_file(states_path)
+counties_gdf = gpd.read_file(counties_path)
+cities_gdf = gpd.read_file(cities_path)
+# Define the relative paths to the GeoJSON files for each hurricane.
+francine_dir = r"\data\geojson\francine.geojson"
+helene_dir = r"\data\geojson\helene.geojson"
 
-    create_qgis_project_file(
-        os.path.join(output_dir, f'{label}_counties_long_format.shp'),
-        'time_str',
-        os.path.join(output_dir, f'{label}_counties_temporal.qgs')
-    )
+# Combine the base path and relative directory to create full, absolute paths to the files.
+francine_path = f"{local_path}{francine_dir}"
+helene_path = f"{local_path}{helene_dir}"
 
-    create_qgis_project_file(
-        os.path.join(output_dir, f'{label}_cities_long_format.shp'),
-        'time_str',
-        os.path.join(output_dir, f'{label}_cities_temporal.qgs')
-    )
-    print(f"\nAll shapefiles created in: {output_dir}")
-    print("\nRecommended usage:")
-    print("- Wide format: Good for ArcGIS Pro time slider")
-    print("- Long format: Good for QGIS temporal controller")
-    print("- Separate files: Good for manual time analysis")
-    # print("\n" + "=" * 50)
-    # print("QGIS SETUP INSTRUCTIONS:")
-    # print("=" * 50)
-    # print("1. Open QGIS")
-    # print("2. Load the *_long_format.shp file")
-    # print("3. Enable Temporal Controller Panel:")
-    # print("   - Go to View menu → Panels → Temporal Controller")
-    # print("   - Or press Ctrl+1 (Windows/Linux) or Cmd+1 (Mac)")
-    # print("   - The temporal panel will appear (usually docked at bottom)")
-    # print("4. Configure layer for time:")
-    # print("   - Right-click layer → Properties → Temporal tab")
-    # print("   - Check 'Dynamic Temporal Control'")
-    # print("   - Set Configuration: 'Single Field with Date/Time'")
-    # print("   - Set Field: 'timestamp' (this is now a proper datetime field)")
-    # print("   - Click OK")
-    # print("5. Use the temporal controls:")
-    # print("   - In Temporal Controller panel, click the green play button")
-    # print("   - Or manually drag the time slider")
-    # print("   - Use step forward/backward buttons for manual control")
-    # print("6. Optional - Set time range:")
-    # print("   - In Temporal Controller, set Fixed Range")
-    # print("   - Choose appropriate time step (e.g., 4 hours)")
-    # print("=" * 50)
+# --- 2. Load data into GeoDataFrames ---
+# A GeoDataFrame is a pandas DataFrame with a special 'geometry' column that allows for spatial operations.
+francine_gdf = gpd.read_file(francine_path)
+helene_gdf = gpd.read_file(helene_path)
 
-def main():
-    label = 'francine'
-    # Load and prepare data (same as before)
-    tweets_gdf = get_geojson(label).to_crs("EPSG:4326")
-    us_cities_gdf = get_cities().to_crs("EPSG:4326")
-    us_states_gdf = get_states().to_crs("EPSG:4326")
-    us_counties_gdf = get_counties().to_crs("EPSG:4326")
+# --- 3. Standardize timestamps to UTC ---
+# Convert the original 'time' column into a pandas datetime object.
+# Setting `utc=True` ensures all timestamps are in a single, unambiguous timezone (UTC).
+# This is crucial for accurate temporal comparisons and binning.
+francine_gdf['timestamp'] = pd.to_datetime(francine_gdf['time'], utc=True)
+helene_gdf['timestamp'] = pd.to_datetime(helene_gdf['time'], utc=True)
 
-    # Spatial joins (same as before)
-    tweets_with_states = gpd.sjoin(tweets_gdf, us_states_gdf, predicate='within', lsuffix='_tweet', rsuffix='_state')
-    tweets_with_counties = gpd.sjoin(tweets_with_states, us_counties_gdf, predicate='within', lsuffix='_tweet',
-                                     rsuffix='_county')
-    tweets_with_cities = gpd.sjoin_nearest(tweets_with_counties, us_cities_gdf, max_distance=0.1,
-                                           distance_col='distance_to_city').drop_duplicates()
-    # tweets_with_cities = gpd.sjoin_nearest(
-    #     tweets_with_counties, us_cities_gdf,
-    #     max_distance=0.1,
-    #     how='left',
-    #     distance_col='distance_to_city'
-    # ).sort_values('distance_to_city').drop_duplicates('tweet_id')
-    print(tweets_with_cities)
-    # Clean data (same as before)
-    final_tweets = clean_and_select_columns(tweets_with_cities)
-    convert_temporal_data_to_shapefiles(final_tweets, us_states_gdf, us_counties_gdf,us_cities_gdf, label)
+# --- 4. Group data into 4-hour time bins ---
+# The `dt.floor('4h')` function rounds each timestamp *down* to the nearest 4-hour interval.
+# For example, 09:35 becomes 08:00, 15:59 becomes 12:00. This aggregates tweets into discrete time windows.
+francine_gdf['time_bin'] = francine_gdf['timestamp'].dt.floor('4h')
+helene_gdf['time_bin'] = helene_gdf['timestamp'].dt.floor('4h')
+
+# --- 5. Create Unix timestamps and lookup dictionaries ---
+# Convert the binned datetime objects into Unix timestamps (as an integer).
+# The `// 1000` division is likely to convert from nanoseconds or microseconds to seconds, a more standard Unix format.
+francine_gdf['unix_timestamp'] = francine_gdf['time_bin'].astype('int64') // 1000
+helene_gdf['unix_timestamp'] = helene_gdf['time_bin'].astype('int64') // 1000
+
+# Create dictionaries to map the numeric Unix timestamp back to its original datetime object.
+# This provides a quick way to retrieve the readable time bin later in the script without recalculating it.
+helene_timestamp_dict = dict(zip(helene_gdf['unix_timestamp'], helene_gdf['time_bin']))
+francine_timestamp_dict = dict(zip(francine_gdf['unix_timestamp'], francine_gdf['time_bin']))
+
+# --- 6. Create readable labels for file naming ---
+# The `dt.strftime` function formats the datetime object into a specific string format.
+# Here, '%Y%m%d_%H%M' creates a clean, sortable label like '20240926_0800', which is ideal for filenames.
+francine_gdf['bin_label'] = francine_gdf['time_bin'].dt.strftime('%Y%m%d_%H%M')
+helene_gdf['bin_label'] = helene_gdf['time_bin'].dt.strftime('%Y%m%d_%H%M')
+
+# Create hierarchical lookups
+lookups = create_hierarchical_lookups(states_gdf, counties_gdf, cities_gdf)
+
+# Apply to both datasets (this will expand the datasets)
+francine_gdf = expand_tweets_by_matches(francine_gdf, lookups, "FRANCINE")
+helene_gdf = expand_tweets_by_matches(helene_gdf, lookups, "HELENE")
+
+ # Group tweets by 4-hour intervals and scale level
+# Using unix_timestamp for unambiguous temporal grouping
+
+# Alternative approach:
+francine_interval_counts = francine_gdf.groupby(['unix_timestamp', 'scale_level', 'matched_name']).agg({
+    'matched_geom': 'first'
+}).reset_index()
+
+# Add count column separately
+count_series = francine_gdf.groupby(['unix_timestamp', 'scale_level', 'matched_name']).size()
+francine_interval_counts['count'] = count_series.values
+
+# Same for Helene
+helene_interval_counts = helene_gdf.groupby(['unix_timestamp', 'scale_level', 'matched_name']).agg({
+    'matched_geom': 'first'
+}).reset_index()
+count_series = helene_gdf.groupby(['unix_timestamp', 'scale_level', 'matched_name']).size()
+helene_interval_counts['count'] = count_series.values
+
+# Sort by timestamp to ensure chronological order
+francine_interval_counts = francine_interval_counts.sort_values('unix_timestamp')
+helene_interval_counts = helene_interval_counts.sort_values('unix_timestamp')
+
+# Calculate cumulative counts
+francine_interval_counts['cumulative_count'] = francine_interval_counts.groupby(['scale_level', 'matched_name'])['count'].cumsum()
+helene_interval_counts['cumulative_count'] = helene_interval_counts.groupby(['scale_level', 'matched_name'])['count'].cumsum()
+
+# Get unique time bins for iteration
+francine_time_bins = sorted(francine_gdf['unix_timestamp'].unique())
+helene_time_bins = sorted(helene_gdf['unix_timestamp'].unique())
+
+francine_proj = francine_gdf.to_crs(TARGET_CRS)
+helene_proj = helene_gdf.to_crs(TARGET_CRS)
+
+states_proj = states_gdf.to_crs(TARGET_CRS)
+counties_proj = counties_gdf.to_crs(TARGET_CRS)
+cities_proj = cities_gdf.to_crs(TARGET_CRS)
+
+francine_bounds = francine_proj.total_bounds
+helene_bounds = helene_proj.total_bounds
+
+# Get union of both bounding boxes
+minx = min(francine_bounds[0], helene_bounds[0])
+miny = min(francine_bounds[1], helene_bounds[1])
+maxx = max(francine_bounds[2], helene_bounds[2])
+maxy = max(francine_bounds[3], helene_bounds[3])
+
+
+# Calculate grid dimensions
+width = int(np.ceil((maxx - minx) / CELL_SIZE_M))
+height = int(np.ceil((maxy - miny) / CELL_SIZE_M))
+
+
+# Create master transform
+master_transform = from_bounds(minx, miny, maxx, maxy, width, height)
+
+
+# Calculate actual coverage area
+area_km2 = (width * height * CELL_SIZE_M * CELL_SIZE_M) / 1_000_000
+
+
+# Store grid parameters for later use
+grid_params = {
+    'crs': TARGET_CRS,
+    'cell_size': CELL_SIZE_M,
+    'width': width,
+    'height': height,
+    'bounds': (minx, miny, maxx, maxy),
+    'transform': master_transform
+}
+
+state_lookup_proj = dict(zip(states_proj['NAME'].str.upper(), states_proj.geometry))
+county_lookup_proj = dict(zip(counties_proj['NAME'].str.upper(), counties_proj.geometry))
+cities_lookup_proj = dict(zip(cities_proj['NAME'].str.upper(), cities_proj.geometry))
+
+rasterize.rasterize_process('francine', francine_proj, francine_interval_counts, francine_time_bins, francine_timestamp_dict, local_path, grid_params)
