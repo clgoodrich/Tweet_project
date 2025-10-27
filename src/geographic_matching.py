@@ -252,13 +252,17 @@ def create_hierarchical_lookups(
         city_name = preprocess_place_name(row["NAME"])
         state_abbrev = str(row.get("ST", "")).upper()
 
-        if city_name:
-            city_lookup[city_name] = row.geometry
+        geometry = row.geometry
+        if geometry is not None and not geometry.is_empty and geometry.geom_type != "Point":
+            geometry = geometry.centroid
+
+        if city_name and geometry is not None and not geometry.is_empty:
+            city_lookup[city_name] = geometry
 
             if state_abbrev in state_abbrev_to_name:
                 state_full = state_abbrev_to_name[state_abbrev]
                 city_by_state.setdefault(state_full, {})
-                city_by_state[state_full][city_name] = row.geometry
+                city_by_state[state_full][city_name] = geometry
 
     return {
         "state_lookup": state_lookup,

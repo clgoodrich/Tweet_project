@@ -153,6 +153,13 @@ def load_reference_shapefiles() -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd
     cities_gdf = gpd.read_file(config.CITIES_PATH)
     print(f"  Loaded {len(cities_gdf)} cities")
 
+    # Convert city geometries to points so downstream rasterization can
+    # perform kernel density rather than polygon fills.
+    if not (cities_gdf.geom_type == "Point").all():
+        cities_gdf = cities_gdf.copy()
+        cities_gdf["geometry"] = cities_gdf.geometry.centroid
+        print("  Converted city geometries to centroids (point representation)")
+
     return states_gdf, counties_gdf, cities_gdf
 
 
