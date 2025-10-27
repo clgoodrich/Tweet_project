@@ -132,6 +132,9 @@ WEIGHTS: Dict[str, int] = {
     "FACILITY": 10,
 }
 
+# CITY_KERNEL_SIGMA_PIXELS: Controls Gaussian smoothing for city kernel density.
+CITY_KERNEL_SIGMA_PIXELS: int = 3
+
 # ------------------------------------------------------------------------------
 # STEP 6 — FUZZY MATCHING & TIME BINNING
 # ------------------------------------------------------------------------------

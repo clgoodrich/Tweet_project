@@ -120,6 +120,11 @@ def create_master_grid(
     counties_proj = counties_gdf.to_crs(config.TARGET_CRS)
     cities_proj = cities_gdf.to_crs(config.TARGET_CRS)
 
+    # Treat cities as points (centroids) for kernel density heatmaps.
+    if not (cities_proj.geom_type == "Point").all():
+        cities_proj = cities_proj.copy()
+        cities_proj["geometry"] = cities_proj.geometry.centroid
+
     # 2) Compute union extent from francine+helene (reference layers are larger)
     print("\nCalculating master extent...")
     francine_bounds = francine_proj.total_bounds  # (minx, miny, maxx, maxy)
@@ -252,6 +257,48 @@ def create_facility_raster(
 
 
 # ------------------------------------------------------------------------------
+# STEP 2b — CITY KERNEL DENSITY
+# ------------------------------------------------------------------------------
+
+def create_city_kernel_density(
+    city_counts,
+    city_lookup_proj,
+    grid_params: Dict[str, Any],
+) -> np.ndarray:
+    """Convert city tweet counts into a Gaussian kernel density raster."""
+
+    height = grid_params["height"]
+    width = grid_params["width"]
+    transform = grid_params["transform"]
+    inv_transform = ~transform
+
+    impulses = np.zeros((height, width), dtype=np.float32)
+
+    for city_name, tweet_count in city_counts.items():
+        geometry = city_lookup_proj.get(city_name)
+        if geometry is None or geometry.is_empty:
+            continue
+
+        point = geometry
+        if point.geom_type != "Point":
+            point = point.centroid
+
+        px, py = inv_transform * (point.x, point.y)
+        col = int(round(px))
+        row = int(round(py))
+
+        if 0 <= row < height and 0 <= col < width:
+            impulses[row, col] += np.log1p(float(tweet_count)) * config.WEIGHTS["CITY"]
+
+    if impulses.max() == 0:
+        return impulses
+
+    sigma = getattr(config, "CITY_KERNEL_SIGMA_PIXELS", 3)
+    blurred = gaussian_filter(impulses, sigma=sigma, mode="constant")
+    return blurred.astype(np.float32)
+
+
+# ------------------------------------------------------------------------------
 # STEP 3 — HIERARCHICAL RASTER
 # ------------------------------------------------------------------------------
 
@@ -268,8 +315,9 @@ def create_hierarchical_rasters(
     1) Determine which states to include:
         • All directly matched states.
         • Any state that contains the centroid of matched counties/cities.
-    2) Rasterize STATE, COUNTY, CITY masks:
-        • Multiply by log1p(tweet_count) * WEIGHTS[level].
+    2) Rasterize STATE and COUNTY masks, build CITY kernel density heatmap:
+        • Multiply polygons by log1p(tweet_count) * WEIGHTS[level].
+        • Stamp CITY points, blur with Gaussian kernel, scale by weight.
     3) Add FACILITY kernel layer (optional).
     4) Return final float32 grid.
 
@@ -355,20 +403,15 @@ def create_hierarchical_rasters(
                 )
                 output_grid += mask * np.log1p(float(tweet_count)) * config.WEIGHTS["COUNTY"]
 
-    # -- Rasterize CITIES
+    # -- Rasterize CITIES (point-based kernel density)
     if len(city_data) > 0:
         city_counts = city_data.groupby("matched_name")["count"].sum()
-        for city_name, tweet_count in city_counts.items():
-            if city_name in cities_lookup_proj:
-                mask = rasterize(
-                    [(cities_lookup_proj[city_name], 1)],
-                    out_shape=(grid_params["height"], grid_params["width"]),
-                    transform=grid_params["transform"],
-                    fill=0,
-                    dtype=np.float32,
-                    all_touched=True,
-                )
-                output_grid += mask * np.log1p(float(tweet_count)) * config.WEIGHTS["CITY"]
+
+        # Previous polygon-based fill retained for reference.
+        # mask = rasterize(...)
+        # output_grid += mask * np.log1p(float(tweet_count)) * config.WEIGHTS["CITY"]
+
+        output_grid += create_city_kernel_density(city_counts, cities_lookup_proj, grid_params)
 
     # -- Add FACILITIES
     facility_data = data[data["scale_level"] == "FACILITY"]
