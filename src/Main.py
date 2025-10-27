@@ -105,10 +105,23 @@ from typing import Tuple
 warnings.filterwarnings('ignore')
 
 # Project modules (must be discoverable on PYTHONPATH)
-import config
-import data_loader
-import geographic_matching
-import rasterization
+import sys
+import os
+# Add src to path if running directly
+if __name__ == "__main__":
+    sys.path.insert(0, os.path.dirname(__file__))
+
+try:
+    from . import config
+    from . import data_loader
+    from . import geographic_matching
+    from . import rasterization
+except ImportError:
+    # Fallback for direct execution
+    import config
+    import data_loader
+    import geographic_matching
+    import rasterization
 
 
 def main() -> Tuple[str, str]:
@@ -200,8 +213,8 @@ def main() -> Tuple[str, str]:
     print("\n[STEP 10/12] Processing Hurricane: FRANCINE")
     print("-" * 40)
     francine_output = rasterization.process_hurricane(
-        event_name='francine',
-        target_proj=grid_params['francine_proj'],
+        hurricane_name='francine',
+        gdf_proj=grid_params['francine_proj'],
         interval_counts=francine_interval_counts,
         time_bins=francine_time_bins,
         timestamp_dict=francine_dict,
@@ -213,8 +226,8 @@ def main() -> Tuple[str, str]:
     print("\n[STEP 11/12] Processing Hurricane: HELENE")
     print("-" * 40)
     helene_output = rasterization.process_hurricane(
-        event_name='helene',
-        target_proj=grid_params['helene_proj'],
+        hurricane_name='helene',
+        gdf_proj=grid_params['helene_proj'],
         interval_counts=helene_interval_counts,
         time_bins=helene_time_bins,
         timestamp_dict=helene_dict,
@@ -247,7 +260,7 @@ if __name__ == "__main__":
     try:
         # Execute full pipeline with explicit phase logging
         francine_dir, helene_dir = main()
-        print("\n✓ Pipeline execution successful!")
+        print("\n[SUCCESS] Pipeline execution successful!")
     except Exception as e:
         # Keep loud + re-raise for CI/ops visibility
         print(f"\n✗ Pipeline failed with error: {str(e)}")

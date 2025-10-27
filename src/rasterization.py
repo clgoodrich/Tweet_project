@@ -58,7 +58,10 @@ from rasterio.transform import from_bounds
 from rasterio.features import rasterize
 from scipy.ndimage import gaussian_filter
 
-import config
+try:
+    from . import config
+except ImportError:
+    import config
 
 
 # ------------------------------------------------------------------------------
@@ -163,7 +166,7 @@ def create_master_grid(
         "helene_proj": helene_proj,
     }
 
-    print("\nMaster grid canvas ready ✓")
+    print("\nMaster grid canvas ready [OK]")
     return grid_params
 
 

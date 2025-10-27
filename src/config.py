@@ -72,11 +72,10 @@ from typing import Dict
 # STEP 1 — BASE PATH DISCOVERY
 # ------------------------------------------------------------------------------
 
-# LOCAL_PATH: Parent of the current working directory (CWD).
-# Rationale: when running `python main.py` from project root, CWD is <root>,
-# and LOCAL_PATH becomes that root's parent. If you prefer LOCAL_PATH == project
-# root, consider using `os.getcwd()` directly or `Path(__file__).resolve()`.
-LOCAL_PATH: str = os.path.dirname(os.getcwd())
+# LOCAL_PATH: Project root directory (parent of src/).
+# Using __file__ to find config.py location, then go up to project root.
+# This works regardless of where the script is run from.
+LOCAL_PATH: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ------------------------------------------------------------------------------
 # STEP 2 — CORE DATA DIRECTORIES

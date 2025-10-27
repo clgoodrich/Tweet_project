@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(git mv:*)",
+      "Bash(mv:*)",
+      "Bash(python -c:*)",
+      "Bash(tree:*)",
+      "Bash(source .venv/Scripts/activate)",
+      "Bash(.venv/Scripts/python.exe:*)",
+      "Bash(../.venv/Scripts/python.exe Main.py)",
+      "Bash(timeout 30 .venv/Scripts/python.exe:*)",
+      "Bash(if [ -f pipeline_output.txt ])",
+      "Bash(then wc -l pipeline_output.txt)",
+      "Bash(else echo \"Output file not yet created\")",
+      "Bash(fi)",
+      "Bash(then echo \"Lines in output:\")",
+      "Bash(else echo \"No output file found\")",
+      "Bash(timeout:*)",
+      "Bash(tee:*)",
+      "Bash(if [ -f pipeline_test.txt ])",
+      "Bash(then wc -l pipeline_test.txt)",
+      "Bash(else echo \"No output file\")",
+      "Bash(../.venv/Scripts/python.exe:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

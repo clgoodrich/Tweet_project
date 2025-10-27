@@ -55,7 +55,10 @@ import pandas as pd
 from datetime import datetime, timezone
 from typing import Dict, List, Tuple
 
-import config
+try:
+    from . import config
+except ImportError:
+    import config
 
 
 # ------------------------------------------------------------------------------

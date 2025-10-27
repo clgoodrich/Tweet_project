@@ -62,7 +62,10 @@ import pandas as pd
 import geopandas as gpd
 from fuzzywuzzy import fuzz, process
 
-import config
+try:
+    from . import config
+except ImportError:
+    import config
 
 
 # ------------------------------------------------------------------------------
