@@ -1,1 +1,13 @@
 *.csv
+*.geojson
+*.cpg
+*.dbf
+*.prj
+*.shp
+*.shx
+*.zip
+*.qgs
+*.tif
+*.xml
+*.tif
+*.tif
