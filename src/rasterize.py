@@ -1,13 +1,66 @@
+"""Legacy rasterization helpers retained for backwards compatibility.
+
+This module mirrors the modern :mod:`src.rasterization` pipeline but keeps the
+earlier function layout that some notebooks/scripts still import.  The logic is
+kept in sync so that bug fixes (such as the city kernel density rewrite) apply
+consistently regardless of the entry point a caller uses.
+"""
+
 import os
+from typing import Dict, Any
+
+import numpy as np
+import geopandas as gpd
 from scipy.ndimage import gaussian_filter
 from rasterio.features import rasterize
-from rasterio.features import geometry_mask
+
+try:
+    from . import config
+except ImportError:  # pragma: no cover - fallback for direct execution
+    import config
+
+
 # ==============================================================================
 # STEP 2: MAIN RASTERIZATION LOOP - TIME ITERATION
 # ==============================================================================
 
-# Create output directories
 
+def create_city_kernel_density(
+    city_counts: Dict[str, float],
+    city_lookup_proj: Dict[str, Any],
+    grid_params: Dict[str, Any],
+) -> np.ndarray:
+    """Create a Gaussian-smoothed intensity grid from city tweet counts."""
+
+    height = grid_params["height"]
+    width = grid_params["width"]
+    transform = grid_params["transform"]
+    inv_transform = ~transform
+
+    impulses = np.zeros((height, width), dtype=np.float32)
+
+    for city_name, tweet_count in city_counts.items():
+        geometry = city_lookup_proj.get(city_name)
+        if geometry is None or geometry.is_empty:
+            continue
+
+        point = geometry
+        if point.geom_type != "Point":
+            point = point.centroid
+
+        px, py = inv_transform * (point.x, point.y)
+        col = int(round(px))
+        row = int(round(py))
+
+        if 0 <= row < height and 0 <= col < width:
+            impulses[row, col] += np.log1p(float(tweet_count)) * config.WEIGHTS["CITY"]
+
+    if impulses.max() == 0:
+        return impulses
+
+    sigma = getattr(config, "CITY_KERNEL_SIGMA_PIXELS", 3)
+    blurred = gaussian_filter(impulses, sigma=sigma, mode="constant")
+    return blurred.astype(np.float32)
 
 
 def create_hierarchical_rasters(data, grid_params, time_bin):
@@ -16,6 +69,10 @@ def create_hierarchical_rasters(data, grid_params, time_bin):
 
     output_grid = np.zeros((grid_params['height'], grid_params['width']), dtype=np.float32)
     states_to_include = set()  # Track which states need base layers
+
+    state_lookup_proj = grid_params["state_lookup_proj"]
+    county_lookup_proj = grid_params["county_lookup_proj"]
+    cities_lookup_proj = grid_params["cities_lookup_proj"]
 
     # 1. First pass: identify all states that need base layers
     state_data = data[data['scale_level'] == 'STATE']
@@ -60,7 +117,7 @@ def create_hierarchical_rasters(data, grid_params, time_bin):
             else:
                 tweet_count = 1  # Minimal base for implied states
 
-            base_value = np.log1p(tweet_count) * 2
+            base_value = np.log1p(tweet_count) * config.WEIGHTS["STATE"]
             output_grid += mask * base_value
 
     # 3. Add counties (same as before)
@@ -74,20 +131,12 @@ def create_hierarchical_rasters(data, grid_params, time_bin):
                     transform=grid_params['transform'],
                     fill=0, dtype=np.float32, all_touched=True
                 )
-                output_grid += mask * np.log1p(tweet_count) * 5
+                output_grid += mask * np.log1p(tweet_count) * config.WEIGHTS["COUNTY"]
 
-    # 4. Add cities (same as before)
+    # 4. Add cities as Gaussian kernel density heatmap
     if len(city_data) > 0:
         city_counts = city_data.groupby('matched_name')['count'].sum()
-        for city_name, tweet_count in city_counts.items():
-            if city_name in cities_lookup_proj:
-                mask = rasterize(
-                    [(cities_lookup_proj[city_name], 1)],
-                    out_shape=(grid_params['height'], grid_params['width']),
-                    transform=grid_params['transform'],
-                    fill=0, dtype=np.float32, all_touched=True
-                )
-                output_grid += mask * np.log1p(tweet_count) * 10
+        output_grid += create_city_kernel_density(city_counts, cities_lookup_proj, grid_params)
 
     # 5. Add facilities
     facility_data = data[data['scale_level'] == 'FACILITY']
