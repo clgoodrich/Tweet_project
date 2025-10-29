@@ -87,6 +87,9 @@ DATA_DIR: str = os.path.join(LOCAL_PATH, "data")
 # GEOJSON_DIR: Holds hurricane-specific tweet GeoJSONs.
 GEOJSON_DIR: str = os.path.join(DATA_DIR, "geojson")
 
+# MATCHED_GEOJSON_DIR: Destination for precomputed, fuzzy-matched GeoJSON exports.
+MATCHED_GEOJSON_DIR: str = os.path.join(GEOJSON_DIR, "matched")
+
 # SHAPE_FILES_DIR: Holds boundary/reference shapefiles (states/counties/cities).
 SHAPE_FILES_DIR: str = os.path.join(DATA_DIR, "shape_files")
 

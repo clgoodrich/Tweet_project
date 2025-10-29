@@ -35,24 +35,28 @@ STEP 5 — EXPAND TWEETS BY MATCHES (MULTI-LEVEL)
     • geographic_matching.expand_tweets_by_matches(helene_gdf, lookups, "HELENE")
         -> Returns expanded GeoDataFrames with derived matches at multiple admin levels.
 
-STEP 6 — INTERVAL COUNTS (PER-TIME-BIN)
+STEP 6 — EXPORT PRE-MATCHED GEOJSON SNAPSHOTS
+    • export_matched_geojsons.export_matched_geojsons(francine_expanded, helene_expanded)
+        -> Writes GeoJSON files containing matched geometries for reuse in future runs.
+
+STEP 7 — INTERVAL COUNTS (PER-TIME-BIN)
     • geographic_matching.create_interval_counts(francine_gdf)
     • geographic_matching.create_interval_counts(helene_gdf)
         -> Returns tidy per-bin counts used to drive rasterization.
 
-STEP 7 — COLLECT ORDERED TIME BINS
+STEP 8 — COLLECT ORDERED TIME BINS
     • data_loader.get_time_bins(francine_gdf), get_time_bins(helene_gdf)
         -> Returns ordered list/sequence of bins that define raster loop iterations.
 
-STEP 8 — BUILD MASTER GRID
+STEP 9 — BUILD MASTER GRID
     • rasterization.create_master_grid(francine_gdf, helene_gdf, states, counties, cities)
         -> Returns grid_params dict with transform, width, height, bounds, and
            per-event target projections (e.g., 'francine_proj', 'helene_proj').
 
-STEP 9 — ENSURE OUTPUT ROOT
+STEP 10 — ENSURE OUTPUT ROOT
     • os.makedirs(config.OUTPUT_DIR, exist_ok=True)
 
-STEP 10 — PROCESS HURRICANE: FRANCINE
+STEP 11 — PROCESS HURRICANE: FRANCINE
     • rasterization.process_hurricane(
           event_name='francine',
           target_proj=grid_params['francine_proj'],
@@ -63,10 +67,10 @@ STEP 10 — PROCESS HURRICANE: FRANCINE
       )
         -> Returns path to Francine output directory with incremental & cumulative rasters.
 
-STEP 11 — PROCESS HURRICANE: HELENE
-    • Same as STEP 10 for 'helene' using helene_* inputs.
+STEP 12 — PROCESS HURRICANE: HELENE
+    • Same as STEP 11 for 'helene' using helene_* inputs.
 
-STEP 12 — SUMMARY & NEXT STEPS
+STEP 13 — SUMMARY & NEXT STEPS
     • Print output dirs, raster types created, and ArcGIS Pro next steps.
 
 RETURNS
@@ -116,12 +120,14 @@ try:
     from . import data_loader
     from . import geographic_matching
     from . import rasterization
+    from . import export_matched_geojsons
 except ImportError:
     # Fallback for direct execution
     import config
     import data_loader
     import geographic_matching
     import rasterization
+    import export_matched_geojsons
 
 
 def main() -> Tuple[str, str]:
@@ -145,31 +151,31 @@ def main() -> Tuple[str, str]:
     print("=" * 80)
 
     # STEP 1 — LOAD HURRICANE DATA
-    print("\n[STEP 1/12] Loading Hurricane Data")
+    print("\n[STEP 1/13] Loading Hurricane Data")
     print("-" * 40)
     francine_gdf, helene_gdf = data_loader.load_hurricane_data()
 
     # STEP 2 — BUILD TIME LOOKUPS (fast timestamp dictionaries)
-    print("\n[STEP 2/12] Building Time Lookups")
+    print("\n[STEP 2/13] Building Time Lookups")
     print("-" * 40)
     francine_dict, helene_dict = data_loader.create_timestamp_dictionaries(
         francine_gdf, helene_gdf
     )
 
     # STEP 3 — LOAD REFERENCE SHAPEFILES
-    print("\n[STEP 3/12] Loading Reference Shapefiles")
+    print("\n[STEP 3/13] Loading Reference Shapefiles")
     print("-" * 40)
     states_gdf, counties_gdf, cities_gdf = data_loader.load_reference_shapefiles()
 
     # STEP 4 — HIERARCHICAL MATCH LOOKUPS
-    print("\n[STEP 4/12] Creating Hierarchical Geographic Lookups")
+    print("\n[STEP 4/13] Creating Hierarchical Geographic Lookups")
     print("-" * 40)
     lookups = geographic_matching.create_hierarchical_lookups(
         states_gdf, counties_gdf, cities_gdf
     )
 
     # STEP 5 — EXPAND TWEETS BY MATCHES (MULTI-LEVEL)
-    print("\n[STEP 5/12] Expanding Tweets by Multi-Level Matches")
+    print("\n[STEP 5/13] Expanding Tweets by Multi-Level Matches")
     print("-" * 40)
     francine_gdf = geographic_matching.expand_tweets_by_matches(
         francine_gdf, lookups, "FRANCINE"
@@ -178,22 +184,32 @@ def main() -> Tuple[str, str]:
         helene_gdf, lookups, "HELENE"
     )
 
-    # STEP 6 — INTERVAL COUNTS (PER-TIME-BIN)
-    print("\n[STEP 6/12] Creating Interval Counts")
+    # STEP 6 — EXPORT PRE-MATCHED GEOJSONS
+    print("\n[STEP 6/13] Exporting Pre-Matched GeoJSONs")
+    print("-" * 40)
+    matched_exports = export_matched_geojsons.export_matched_geojsons(
+        francine_expanded=francine_gdf,
+        helene_expanded=helene_gdf,
+    )
+    for dataset, path in matched_exports.items():
+        print(f"  {dataset.title()} matched GeoJSON: {path}")
+
+    # STEP 7 — INTERVAL COUNTS (PER-TIME-BIN)
+    print("\n[STEP 7/13] Creating Interval Counts")
     print("-" * 40)
     francine_interval_counts = geographic_matching.create_interval_counts(francine_gdf)
     helene_interval_counts = geographic_matching.create_interval_counts(helene_gdf)
 
-    # STEP 7 — COLLECT ORDERED TIME BINS
-    print("\n[STEP 7/12] Collecting Ordered Time Bins")
+    # STEP 8 — COLLECT ORDERED TIME BINS
+    print("\n[STEP 8/13] Collecting Ordered Time Bins")
     print("-" * 40)
     francine_time_bins = data_loader.get_time_bins(francine_gdf)
     helene_time_bins = data_loader.get_time_bins(helene_gdf)
     print(f"  Francine time bins: {len(francine_time_bins)}")
     print(f"  Helene   time bins: {len(helene_time_bins)}")
 
-    # STEP 8 — BUILD MASTER GRID (transform, size, bounds, per-event projections)
-    print("\n[STEP 8/12] Creating Master Grid")
+    # STEP 9 — BUILD MASTER GRID (transform, size, bounds, per-event projections)
+    print("\n[STEP 9/13] Creating Master Grid")
     print("-" * 40)
     grid_params = rasterization.create_master_grid(
         francine_gdf, helene_gdf, states_gdf, counties_gdf, cities_gdf
@@ -203,14 +219,14 @@ def main() -> Tuple[str, str]:
     #   grid_params['francine_proj'], grid_params['helene_proj'], ...
     #   plus any additional metadata required by process_hurricane()
 
-    # STEP 9 — ENSURE OUTPUT ROOT DIR
-    print("\n[STEP 9/12] Ensuring Output Directory Exists")
+    # STEP 10 — ENSURE OUTPUT ROOT DIR
+    print("\n[STEP 10/13] Ensuring Output Directory Exists")
     print("-" * 40)
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
     print(f"  OUTPUT_DIR: {config.OUTPUT_DIR}")
 
-    # STEP 10 — PROCESS HURRICANE: FRANCINE (increment + cumulative rasters)
-    print("\n[STEP 10/12] Processing Hurricane: FRANCINE")
+    # STEP 11 — PROCESS HURRICANE: FRANCINE (increment + cumulative rasters)
+    print("\n[STEP 11/13] Processing Hurricane: FRANCINE")
     print("-" * 40)
     francine_output = rasterization.process_hurricane(
         hurricane_name='francine',
@@ -222,8 +238,8 @@ def main() -> Tuple[str, str]:
     )
     print(f"  Francine output dir: {francine_output}")
 
-    # STEP 11 — PROCESS HURRICANE: HELENE (increment + cumulative rasters)
-    print("\n[STEP 11/12] Processing Hurricane: HELENE")
+    # STEP 12 — PROCESS HURRICANE: HELENE (increment + cumulative rasters)
+    print("\n[STEP 12/13] Processing Hurricane: HELENE")
     print("-" * 40)
     helene_output = rasterization.process_hurricane(
         hurricane_name='helene',
@@ -235,8 +251,8 @@ def main() -> Tuple[str, str]:
     )
     print(f"  Helene output dir: {helene_output}")
 
-    # STEP 12 — SUMMARY & NEXT STEPS
-    print("\n[STEP 12/12] Summary & Next Steps")
+    # STEP 13 — SUMMARY & NEXT STEPS
+    print("\n[STEP 13/13] Summary & Next Steps")
     print("-" * 40)
     print("\n" + "=" * 80)
     print("PROCESSING COMPLETE")
