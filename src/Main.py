@@ -105,8 +105,9 @@ from __future__ import annotations
 import os
 import warnings
 from typing import Tuple
-
+import pandas as pd
 warnings.filterwarnings('ignore')
+pd.set_option('display.max_columns', None)
 
 # Project modules (must be discoverable on PYTHONPATH)
 import sys
@@ -191,6 +192,9 @@ def main() -> Tuple[str, str]:
         francine_expanded=francine_gdf,
         helene_expanded=helene_gdf,
     )
+    print(matched_exports)
+    print(foo)
+
     for dataset, path in matched_exports.items():
         print(f"  {dataset.title()} matched GeoJSON: {path}")
 
@@ -208,7 +212,7 @@ def main() -> Tuple[str, str]:
     print(f"  Francine time bins: {len(francine_time_bins)}")
     print(f"  Helene   time bins: {len(helene_time_bins)}")
 
-    # STEP 9 — BUILD MASTER GRID (transform, size, bounds, per-event projections)
+    # STEP 9 — BUILD  MASTER GRID (transform, size, bounds, per-event projections)
     print("\n[STEP 9/13] Creating Master Grid")
     print("-" * 40)
     grid_params = rasterization.create_master_grid(

@@ -130,6 +130,7 @@ def export_matched_geojsons(
     for dataset, (expanded, path) in prepared.items():
         print(f"\nProcessing {dataset.title()} matches → {path}")
         output_gdf = _prepare_matched_geodataframe(expanded)
+        print(output_gdf)
         output_gdf.to_file(path, driver="GeoJSON")
         export_paths[dataset] = path
         print(
