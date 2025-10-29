@@ -43,11 +43,7 @@ def _prepare_matched_geodataframe(expanded_gdf: gpd.GeoDataFrame) -> gpd.GeoData
 
     output_gdf = expanded_gdf.copy()
 
-    # Preserve the original tweet geometry for auditing. ``rename_geometry``
-    # keeps the renamed column as a geometry-valued series, which GeoPandas
-    # still treats as a secondary geometry column. ``GeoDataFrame.to_file``
-    # only supports a single geometry column, so capture the original
-    # geometry as WKT and drop the extra geometry column before export.
+    # Preserve the original tweet geometry for auditing.
     output_gdf = output_gdf.rename_geometry("tweet_geometry")
 
     # Backfill any missing matched geometries with the tweet geometry so that
@@ -60,13 +56,6 @@ def _prepare_matched_geodataframe(expanded_gdf: gpd.GeoDataFrame) -> gpd.GeoData
     # Promote the matched geometry to be the active geometry column.
     output_gdf = output_gdf.set_geometry("matched_geom")
     output_gdf = output_gdf.rename_geometry("geometry")
-
-    # Persist the original tweet geometry as text so that only a single
-    # geometry column remains when exporting to GeoJSON.
-    output_gdf["tweet_geometry_wkt"] = gpd.GeoSeries(
-        output_gdf["tweet_geometry"], crs=output_gdf.crs
-    ).to_wkt()
-    output_gdf = output_gdf.drop(columns=["tweet_geometry"])
 
     # Ensure CRS metadata is preserved for GeoJSON export.
     if output_gdf.crs is None and hasattr(expanded_gdf, "crs"):
