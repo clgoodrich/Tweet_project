@@ -150,7 +150,8 @@ def create_master_grid(
     print("\nCreating projected geometry lookups...")
     state_lookup_proj = dict(zip(states_proj["NAME"].str.upper(), states_proj.geometry))
     county_lookup_proj = dict(zip(counties_proj["NAME"].str.upper(), counties_proj.geometry))
-    cities_lookup_proj = dict(zip(cities_proj["NAME"].str.upper(), cities_proj.geometry))
+    # Convert city geometries to centroids (points) for KDE rasterization
+    cities_lookup_proj = dict(zip(cities_proj["NAME"].str.upper(), cities_proj.geometry.centroid))
 
     grid_params: Dict[str, Any] = {
         "crs": config.TARGET_CRS,
@@ -249,6 +250,89 @@ def create_facility_raster(
                 facilities_processed += 1
 
     return facility_grid
+
+
+# ------------------------------------------------------------------------------
+# HELPER FUNCTION: City KDE Rasterization
+# ------------------------------------------------------------------------------
+
+def create_city_kde_raster(
+    city_data: "pd.DataFrame",
+    cities_lookup_proj: Dict[str, Any],
+    grid_params: Dict[str, Any]
+) -> np.ndarray:
+    """
+    Create a raster layer for cities using Kernel Density Estimation (KDE).
+
+    Cities are treated as point locations with a Gaussian kernel applied
+    around each point, weighted by tweet count.
+
+    Parameters
+    ----------
+    city_data : pd.DataFrame
+        DataFrame containing city-level tweet data with 'matched_name' and 'count' columns
+    cities_lookup_proj : Dict[str, Any]
+        Dictionary mapping city names to their point geometries (in projected CRS)
+    grid_params : Dict[str, Any]
+        Grid parameters including height, width, cell_size, bounds, transform
+
+    Returns
+    -------
+    np.ndarray
+        2D array of city density values weighted by tweet counts
+    """
+    # Initialize empty raster
+    city_grid = np.zeros((grid_params["height"], grid_params["width"]), dtype=np.float32)
+
+    # Group city data by city name and sum tweet counts
+    city_counts = city_data.groupby("matched_name")["count"].sum()
+
+    if len(city_counts) == 0:
+        return city_grid
+
+    # KDE parameters
+    # Sigma in meters - controls the spread of the kernel
+    sigma_meters = 3 * grid_params["cell_size"]  # 3km spread for 1km cells
+    sigma_pixels = sigma_meters / grid_params["cell_size"]  # Convert to pixel units
+
+    print(f"      Creating city KDE raster with sigma={sigma_pixels:.2f} pixels...")
+
+    # Process each city
+    cities_processed = 0
+
+    for city_name, tweet_count in city_counts.items():
+        if city_name not in cities_lookup_proj:
+            continue
+
+        city_point = cities_lookup_proj[city_name]
+
+        # Ensure we have a point geometry
+        if not hasattr(city_point, 'x') or not hasattr(city_point, 'y'):
+            continue
+
+        # Convert point coordinates to pixel indices
+        px = (city_point.x - grid_params["bounds"][0]) / grid_params["cell_size"]
+        py = (grid_params["bounds"][3] - city_point.y) / grid_params["cell_size"]
+
+        # Check if point is within grid bounds
+        if 0 <= px < grid_params["width"] and 0 <= py < grid_params["height"]:
+            # Create point raster with tweet count at location
+            point_grid = np.zeros((grid_params["height"], grid_params["width"]), dtype=np.float32)
+            point_grid[int(py), int(px)] = tweet_count
+
+            # Apply Gaussian filter to create kernel density
+            kernel_grid = gaussian_filter(point_grid, sigma=sigma_pixels, mode='constant', cval=0)
+
+            # Apply log transform and weight
+            city_grid += kernel_grid * np.log1p(float(tweet_count)) * config.WEIGHTS["CITY"]
+
+            cities_processed += 1
+
+    print(f"        Processed {cities_processed}/{len(city_counts)} cities")
+    if np.max(city_grid) > 0:
+        print(f"        City KDE max: {np.max(city_grid):.2f}")
+
+    return city_grid
 
 
 # ------------------------------------------------------------------------------
@@ -355,20 +439,11 @@ def create_hierarchical_rasters(
                 )
                 output_grid += mask * np.log1p(float(tweet_count)) * config.WEIGHTS["COUNTY"]
 
-    # -- Rasterize CITIES
+    # -- Rasterize CITIES using Kernel Density Estimation (KDE)
+    # NOTE: Cities are now treated as points with KDE instead of polygon rasterization
     if len(city_data) > 0:
-        city_counts = city_data.groupby("matched_name")["count"].sum()
-        for city_name, tweet_count in city_counts.items():
-            if city_name in cities_lookup_proj:
-                mask = rasterize(
-                    [(cities_lookup_proj[city_name], 1)],
-                    out_shape=(grid_params["height"], grid_params["width"]),
-                    transform=grid_params["transform"],
-                    fill=0,
-                    dtype=np.float32,
-                    all_touched=True,
-                )
-                output_grid += mask * np.log1p(float(tweet_count)) * config.WEIGHTS["CITY"]
+        city_grid = create_city_kde_raster(city_data, cities_lookup_proj, grid_params)
+        output_grid += city_grid
 
     # -- Add FACILITIES
     facility_data = data[data["scale_level"] == "FACILITY"]

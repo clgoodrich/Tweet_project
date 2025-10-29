@@ -1,0 +1,267 @@
+
+================================================================================
+TWEET PROJECT - HURRICANE SOCIAL MEDIA ANALYSIS
+================================================================================
+
+[STEP 1/12] Loading Hurricane Data
+----------------------------------------
+============================================================
+LOADING HURRICANE DATA
+============================================================
+
+Loading Francine data from: C:\users\colto\documents\github\tweet_project\data\geojson\francine.geojson
+Loading Helene data from: C:\users\colto\documents\github\tweet_project\data\geojson\helene.geojson
+
+Standardizing timestamps to UTC...
+Grouping data into 4-hour bins...
+
+Loaded 2303 Francine tweets
+Loaded 3007 Helene tweets
+
+[STEP 2/12] Building Time Lookups
+----------------------------------------
+
+[STEP 3/12] Loading Reference Shapefiles
+----------------------------------------
+
+Loading reference shapefiles...
+  Loaded 52 states
+  Loaded 3222 counties
+  Loaded 31615 cities
+
+[STEP 4/12] Creating Hierarchical Geographic Lookups
+----------------------------------------
+
+Creating hierarchical lookup dictionaries...
+
+[STEP 5/12] Expanding Tweets by Multi-Level Matches
+----------------------------------------
+
+Expanding FRANCINE tweets by geographic matches...
+  Processing tweet 0...
+  Processing tweet 100...
+  Processing tweet 200...
+  Processing tweet 300...
+  Processing tweet 400...
+  Processing tweet 500...
+  Processing tweet 600...
+  Processing tweet 700...
+  Processing tweet 800...
+  Processing tweet 900...
+  Processing tweet 1000...
+  Processing tweet 1100...
+  Processing tweet 1200...
+  Processing tweet 1300...
+  Processing tweet 1400...
+  Processing tweet 1500...
+  Processing tweet 1600...
+  Processing tweet 1700...
+  Processing tweet 1800...
+  Processing tweet 1900...
+  Processing tweet 2000...
+  Processing tweet 2100...
+  Processing tweet 2200...
+  Processing tweet 2300...
+  Expanded from 2303 to 7365 rows
+
+  Scale level distribution:
+    CITY: 2775
+    COUNTY: 2529
+    STATE: 1990
+    FACILITY: 38
+    UNMATCHED: 33
+
+Expanding HELENE tweets by geographic matches...
+  Processing tweet 0...
+  Processing tweet 100...
+  Processing tweet 200...
+  Processing tweet 300...
+  Processing tweet 400...
+  Processing tweet 500...
+  Processing tweet 600...
+  Processing tweet 700...
+  Processing tweet 800...
+  Processing tweet 900...
+  Processing tweet 1000...
+  Processing tweet 1100...
+  Processing tweet 1200...
+  Processing tweet 1300...
+  Processing tweet 1400...
+  Processing tweet 1500...
+  Processing tweet 1600...
+  Processing tweet 1700...
+  Processing tweet 1800...
+  Processing tweet 1900...
+  Processing tweet 2000...
+  Processing tweet 2100...
+  Processing tweet 2200...
+  Processing tweet 2300...
+  Processing tweet 2400...
+  Processing tweet 2500...
+  Processing tweet 2600...
+  Processing tweet 2700...
+  Processing tweet 2800...
+  Processing tweet 2900...
+  Processing tweet 3000...
+  Expanded from 3007 to 9473 rows
+
+  Scale level distribution:
+    CITY: 3533
+    COUNTY: 3015
+    STATE: 2756
+    FACILITY: 112
+    UNMATCHED: 57
+
+[STEP 6/12] Creating Interval Counts
+----------------------------------------
+
+[STEP 7/12] Collecting Ordered Time Bins
+----------------------------------------
+  Francine time bins: 42
+  Helene   time bins: 11
+
+[STEP 8/12] Creating Master Grid
+----------------------------------------
+============================================================
+CREATING MASTER GRID CANVAS
+============================================================
+
+Projecting datasets to EPSG:3857...
+
+Calculating master extent...
+
+Grid Configuration:
+  Cell size: 1,000 meters
+  Grid dimensions: 3364 x 2195 cells
+  Total cells: 7,383,980
+
+Coverage area: 7,383,980.00 km²
+
+Creating projected geometry lookups...
+
+Master grid canvas ready [OK]
+
+[STEP 9/12] Ensuring Output Directory Exists
+----------------------------------------
+  OUTPUT_DIR: C:\users\colto\documents\github\tweet_project\rasters_output
+
+[STEP 10/12] Processing Hurricane: FRANCINE
+----------------------------------------
+
+============================================================
+PROCESSING: FRANCINE
+============================================================
+
+Time Bin 1/42
+  Tweets in this bin: 6
+      Creating city KDE raster with sigma=3.00 pixels...
+        Processed 1/2 cities
+        Out of bounds: 1
+        City grid max value: 0.39
+    Saved: increment/francine_tweets_20240909_080000.tif
+    Saved: cumulative/francine_tweets_20240909_080000.tif
+  Incremental max value: 9.08
+  Cumulative  max value: 9.08
+
+Time Bin 2/42
+  Tweets in this bin: 16
+      Creating city KDE raster with sigma=3.00 pixels...
+        Processed 2/6 cities
+        Out of bounds: 4
+        City grid max value: 6.07
+    Saved: increment/francine_tweets_20240909_120000.tif
+    Saved: cumulative/francine_tweets_20240909_120000.tif
+  Incremental max value: 14.58
+  Cumulative  max value: 21.46
+
+Time Bin 3/42
+  Tweets in this bin: 13
+      Creating city KDE raster with sigma=3.00 pixels...
+        Processed 3/5 cities
+        Out of bounds: 2
+        City grid max value: 21.38
+    Saved: increment/francine_tweets_20240909_160000.tif
+    Saved: cumulative/francine_tweets_20240909_160000.tif
+  Incremental max value: 22.76
+  Cumulative  max value: 40.62
+
+Time Bin 4/42
+  Tweets in this bin: 19
+      Creating city KDE raster with sigma=3.00 pixels...
+        Processed 6/9 cities
+        Out of bounds: 3
+        City grid max value: 10.77
+    Saved: increment/francine_tweets_20240909_200000.tif
+    Saved: cumulative/francine_tweets_20240909_200000.tif
+  Incremental max value: 16.61
+  Cumulative  max value: 57.23
+
+Time Bin 5/42
+  Tweets in this bin: 17
+      Creating city KDE raster with sigma=3.00 pixels...
+        Processed 7/9 cities
+        Out of bounds: 2
+        City grid max value: 25.44
+    Saved: increment/francine_tweets_20240910_000000.tif
+    Saved: cumulative/francine_tweets_20240910_000000.tif
+  Incremental max value: 26.83
+  Cumulative  max value: 77.06
+
+Time Bin 6/42
+  Tweets in this bin: 12
+      Creating city KDE raster with sigma=3.00 pixels...
+        Processed 2/5 cities
+        Out of bounds: 3
+        City grid max value: 1.58
+    Saved: increment/francine_tweets_20240910_040000.tif
+    Saved: cumulative/francine_tweets_20240910_040000.tif
+  Incremental max value: 15.20
+  Cumulative  max value: 92.26
+
+Time Bin 7/42
+  Tweets in this bin: 21
+      Creating city KDE raster with sigma=3.00 pixels...
+        Processed 7/9 cities
+        Out of bounds: 2
+        City grid max value: 13.66
+    Saved: increment/francine_tweets_20240910_080000.tif
+    Saved: cumulative/francine_tweets_20240910_080000.tif
+  Incremental max value: 17.48
+  Cumulative  max value: 109.74
+
+Time Bin 8/42
+  Tweets in this bin: 24
+      Creating city KDE raster with sigma=3.00 pixels...
+        Processed 9/10 cities
+        Out of bounds: 1
+        City grid max value: 12.20
+    Saved: increment/francine_tweets_20240910_120000.tif
+    Saved: cumulative/francine_tweets_20240910_120000.tif
+  Incremental max value: 18.45
+  Cumulative  max value: 128.19
+
+Time Bin 9/42
+  Tweets in this bin: 18
+      Creating city KDE raster with sigma=3.00 pixels...
+        Processed 6/7 cities
+        Out of bounds: 1
+        City grid max value: 7.35
+    Saved: increment/francine_tweets_20240910_160000.tif
+    Saved: cumulative/francine_tweets_20240910_160000.tif
+  Incremental max value: 15.25
+  Cumulative  max value: 143.44
+
+Time Bin 10/42
+  Tweets in this bin: 38
+      Creating city KDE raster with sigma=3.00 pixels...
+        Processed 13/17 cities
+        Out of bounds: 4
+        City grid max value: 38.27
+    Saved: increment/francine_tweets_20240910_200000.tif
+    Saved: cumulative/francine_tweets_20240910_200000.tif
+  Incremental max value: 39.66
+  Cumulative  max value: 164.86
+
+Time Bin 11/42
+  Tweets in this bin: 37
+      Creating city KDE raster with sigma=3.00 pixels...

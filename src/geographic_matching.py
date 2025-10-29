@@ -245,6 +245,8 @@ def create_hierarchical_lookups(
                 county_by_state[state_name][county_name] = row.geometry
 
     # 3) Cities — global and grouped by state
+    # NOTE: Cities are now treated as POINTS for KDE rasterization instead of polygons
+    # Commented out polygon-based approach; cities are now stored as point geometries
     city_by_state: Dict[str, Dict[str, Any]] = {}
     city_lookup: Dict[str, Any] = {}
 
@@ -253,12 +255,19 @@ def create_hierarchical_lookups(
         state_abbrev = str(row.get("ST", "")).upper()
 
         if city_name:
-            city_lookup[city_name] = row.geometry
+            # Convert to point geometry (centroid for KDE)
+            if hasattr(row.geometry, 'centroid'):
+                city_lookup[city_name] = row.geometry.centroid
+            else:
+                city_lookup[city_name] = row.geometry  # Already a point
 
             if state_abbrev in state_abbrev_to_name:
                 state_full = state_abbrev_to_name[state_abbrev]
                 city_by_state.setdefault(state_full, {})
-                city_by_state[state_full][city_name] = row.geometry
+                if hasattr(row.geometry, 'centroid'):
+                    city_by_state[state_full][city_name] = row.geometry.centroid
+                else:
+                    city_by_state[state_full][city_name] = row.geometry
 
     return {
         "state_lookup": state_lookup,

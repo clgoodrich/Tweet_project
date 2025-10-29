@@ -21,7 +21,10 @@
       "Bash(if [ -f pipeline_test.txt ])",
       "Bash(then wc -l pipeline_test.txt)",
       "Bash(else echo \"No output file\")",
-      "Bash(../.venv/Scripts/python.exe:*)"
+      "Bash(../.venv/Scripts/python.exe:*)",
+      "Bash(then tail -50 pipeline_test.txt)",
+      "Bash(else echo \"No pipeline output file\")",
+      "Bash(then tail -100 pipeline_test.txt)"
     ],
     "deny": [],
     "ask": []
