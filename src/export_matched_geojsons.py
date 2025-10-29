@@ -64,11 +64,21 @@ def _prepare_matched_geodataframe(expanded_gdf: gpd.GeoDataFrame) -> gpd.GeoData
     return output_gdf
 
 
-def export_matched_geojsons(output_dir: str | None = None) -> Dict[str, str]:
-    """Run fuzzy matching once and write reusable GeoJSON exports.
+def export_matched_geojsons(
+    francine_expanded: gpd.GeoDataFrame | None = None,
+    helene_expanded: gpd.GeoDataFrame | None = None,
+    output_dir: str | None = None,
+) -> Dict[str, str]:
+    """Write reusable GeoJSON exports containing pre-matched geometries.
 
     Parameters
     ----------
+    francine_expanded : GeoDataFrame, optional
+        Result of ``expand_tweets_by_matches`` for Hurricane Francine. When
+        omitted, the dataset is loaded and expanded inside this function.
+    helene_expanded : GeoDataFrame, optional
+        Result of ``expand_tweets_by_matches`` for Hurricane Helene. When
+        omitted, the dataset is loaded and expanded inside this function.
     output_dir : str | None, optional
         Destination directory for the matched GeoJSON files. Defaults to
         ``config.MATCHED_GEOJSON_DIR``.
@@ -85,22 +95,29 @@ def export_matched_geojsons(output_dir: str | None = None) -> Dict[str, str]:
     export_root = _ensure_output_dir(output_dir or config.MATCHED_GEOJSON_DIR)
     print(f"Output directory: {export_root}")
 
-    # Load hurricane tweets and reference geographies.
-    francine_gdf, helene_gdf = data_loader.load_hurricane_data()
-    states_gdf, counties_gdf, cities_gdf = data_loader.load_reference_shapefiles()
+    # If expanded GeoDataFrames are not provided, load the raw data and run the
+    # fuzzy matching pipeline locally. This keeps the function usable as a
+    # stand-alone utility, while allowing callers (like the main pipeline) to
+    # provide pre-expanded data so the matching only happens once.
+    if francine_expanded is None or helene_expanded is None:
+        print("Loading hurricane data and computing matches (stand-alone mode)...")
+        francine_gdf, helene_gdf = data_loader.load_hurricane_data()
+        states_gdf, counties_gdf, cities_gdf = data_loader.load_reference_shapefiles()
 
-    # Build lookup dictionaries for the fuzzy matching step.
-    lookups = geographic_matching.create_hierarchical_lookups(
-        states_gdf, counties_gdf, cities_gdf
-    )
+        lookups = geographic_matching.create_hierarchical_lookups(
+            states_gdf, counties_gdf, cities_gdf
+        )
 
-    # Expand tweets so each fuzzy match becomes its own row.
-    francine_expanded = geographic_matching.expand_tweets_by_matches(
-        francine_gdf, lookups, "FRANCINE"
-    )
-    helene_expanded = geographic_matching.expand_tweets_by_matches(
-        helene_gdf, lookups, "HELENE"
-    )
+        if francine_expanded is None:
+            francine_expanded = geographic_matching.expand_tweets_by_matches(
+                francine_gdf, lookups, "FRANCINE"
+            )
+        if helene_expanded is None:
+            helene_expanded = geographic_matching.expand_tweets_by_matches(
+                helene_gdf, lookups, "HELENE"
+            )
+    else:
+        print("Using provided expanded GeoDataFrames (pipeline-integrated mode)...")
 
     # Prepare GeoDataFrames ready for GeoJSON export.
     prepared: Dict[str, Tuple[gpd.GeoDataFrame, str]] = {
