@@ -1,0 +1,22 @@
+{
+  "pipeline": "Raster Fusion",
+  "timestamp": "2025-10-29T19:09:46.515896",
+  "config": {
+    "event": "helene",
+    "cell_size_km": 5,
+    "time_bin_hours": 2,
+    "weights": {
+      "coordinates": 0.5,
+      "city": 0.3,
+      "county": 0.15,
+      "state": 0.05
+    },
+    "crs": "EPSG:5070",
+    "export_slices": true
+  },
+  "grid": {
+    "width": 279,
+    "height": 390
+  },
+  "slices": 21
+}

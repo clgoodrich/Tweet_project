@@ -24,7 +24,11 @@
       "Bash(../.venv/Scripts/python.exe:*)",
       "Bash(then tail -50 pipeline_test.txt)",
       "Bash(else echo \"No pipeline output file\")",
-      "Bash(then tail -100 pipeline_test.txt)"
+      "Bash(then tail -100 pipeline_test.txt)",
+      "Bash(jupyter nbconvert:*)",
+      "Bash(python create_notebook.py:*)",
+      "Bash(cat:*)",
+      "Bash(python create_spacetimecube.py:*)"
     ],
     "deny": [],
     "ask": []

@@ -31,37 +31,54 @@ def _ensure_output_dir(output_dir: str) -> str:
 
 
 def _prepare_matched_geodataframe(expanded_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Convert the expanded tweet GeoDataFrame into a GeoJSON-ready structure.
-
-    The input GeoDataFrame returned by ``expand_tweets_by_matches`` stores the
-    fuzzy-matched geometry in a separate ``matched_geom`` column. This helper
-    promotes that column to be the active geometry, while preserving the original
-    tweet geometry for reference.
-    """
     if "matched_geom" not in expanded_gdf.columns:
         raise KeyError("Expected 'matched_geom' column to exist on expanded GeoDataFrame")
 
-    output_gdf = expanded_gdf.copy()
+    gdf = expanded_gdf.copy()
 
-    # Preserve the original tweet geometry for auditing.
-    output_gdf = output_gdf.rename_geometry("tweet_geometry")
+    # Preserve original geometry as a normal (non-active) column first.
+    # If the GeoDataFrame already has an active geometry, rename it.
+    if gdf._geometry_column_name is not None:
+        gdf = gdf.rename_geometry("tweet_geometry")
+    else:
+        # If somehow there's no active geometry, create a placeholder column
+        # to keep the original points if present in data.
+        if "tweet_geometry" not in gdf:
+            gdf["tweet_geometry"] = None
 
-    # Backfill any missing matched geometries with the tweet geometry so that
-    # every row retains a valid geometry before export.
-    output_gdf["matched_geom"] = output_gdf.apply(
-        lambda row: row["tweet_geometry"] if row["matched_geom"] is None else row["matched_geom"],
-        axis=1,
-    )
+    # Backfill matched geometries with the original tweet geometry when missing
+    gdf["geometry"] = gdf["matched_geom"].where(gdf["matched_geom"].notna(), gdf["tweet_geometry"])
 
-    # Promote the matched geometry to be the active geometry column.
-    output_gdf = output_gdf.set_geometry("matched_geom")
-    output_gdf = output_gdf.rename_geometry("geometry")
+    # Remove helper column now that we've promoted it
+    gdf = gdf.drop(columns=["matched_geom"])
 
-    # Ensure CRS metadata is preserved for GeoJSON export.
-    if output_gdf.crs is None and hasattr(expanded_gdf, "crs"):
-        output_gdf.set_crs(expanded_gdf.crs, inplace=True)
+    # Activate the promoted geometry
+    gdf = gdf.set_geometry("geometry")
 
-    return output_gdf
+    # IMPORTANT: GeoJSON expects WGS84; reproject if needed.
+    # First, ensure we retain CRS from the source if present.
+    if gdf.crs is None and getattr(expanded_gdf, "crs", None) is not None:
+        gdf = gdf.set_crs(expanded_gdf.crs)
+
+    # Reproject to EPSG:4326 for GeoJSON (RFC 7946)
+    if gdf.crs is not None and gdf.crs.to_epsg() != 4326:
+        gdf = gdf.to_crs(4326)
+
+    # Convert ANY remaining geometry-typed columns (e.g., 'tweet_geometry') to WKT
+    # so there is only one geometry column in the frame.
+    for col in list(gdf.columns):
+        if col != gdf.geometry.name:
+            # GeoPandas 0.12+ helper:
+            try:
+                is_geom = gpd.array.is_geometry_type(gdf[col])
+            except Exception:
+                is_geom = False
+            if is_geom:
+                gdf[f"{col}_wkt"] = gdf[col].to_wkt()
+                gdf = gdf.drop(columns=[col])
+
+    return gdf
+
 
 
 def export_matched_geojsons(
