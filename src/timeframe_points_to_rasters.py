@@ -2,6 +2,7 @@ import geopandas as gpd
 import numpy as np
 import rasterio
 from rasterio.transform import from_bounds
+from scipy.ndimage import gaussian_filter
 import os
 
 # Configuration
@@ -20,25 +21,38 @@ datasets = [
 
 def create_kernel_density(points_gdf, value_field, width, height, bounds_proj, cell_size_m, sigma_factor=2):
     """Create kernel density raster from points"""
+    if points_gdf.empty:
+        return np.zeros((height, width), dtype="float32")
+
+    density = np.zeros((height, width), dtype="float32")
+
+    minx, miny, maxx, maxy = bounds_proj
+    pixel_width = (maxx - minx) / width
+    pixel_height = (maxy - miny) / height
+
     coords = np.array([[geom.x, geom.y] for geom in points_gdf.geometry])
-    values = points_gdf[value_field].values
+    values = points_gdf[value_field].to_numpy(dtype="float32", copy=False)
 
-    if len(coords) == 0:
-        return np.zeros((height, width))
+    cols = ((coords[:, 0] - minx) / pixel_width).astype(int)
+    rows = ((maxy - coords[:, 1]) / pixel_height).astype(int)
 
-    x_coords = np.linspace(bounds_proj[0], bounds_proj[2], width)
-    y_coords = np.linspace(bounds_proj[1], bounds_proj[3], height)
-    xx, yy = np.meshgrid(x_coords, y_coords[::-1])
+    valid_mask = (
+        (rows >= 0)
+        & (rows < height)
+        & (cols >= 0)
+        & (cols < width)
+    )
 
-    density = np.zeros((height, width))
-    sigma = cell_size_m * sigma_factor
+    rows = rows[valid_mask]
+    cols = cols[valid_mask]
+    values = values[valid_mask]
 
-    for (px, py), weight in zip(coords, values):
-        dist_sq = (xx - px) ** 2 + (yy - py) ** 2
-        kernel = weight * np.exp(-dist_sq / (2 * sigma ** 2))
-        density += kernel
+    np.add.at(density, (rows, cols), values)
 
-    density = density / (2 * np.pi * sigma ** 2)
+    sigma_meters = cell_size_m * float(sigma_factor)
+    sigma_pixels = max(1.0, sigma_meters / max(pixel_width, pixel_height))
+    density = gaussian_filter(density, sigma=sigma_pixels, mode="constant", cval=0.0)
+
     return density
 
 
