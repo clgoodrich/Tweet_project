@@ -1,36 +1,75 @@
-# Geographic Heat Map Analysis - Temporal Visualization
+Purpose
 
-## Project Context
-Generate ArcGIS-compatible raster heat maps from multi-scale geographic data (states, counties, cities) with temporal analysis capabilities.
+Guide Claude Code to produce an ArcGIS-native notebook (uses arcpy only) that converts the Tweets project inputs into iterative and cumulative time-aware rasters for Francine and Helene, ready for animation and Space-Time Pattern Mining in ArcGIS Pro.
 
-## Technical Stack
-- Python 3.x
-- Jupyter Notebook
-- ArcPy / GeoPandas / Rasterio
-- ArcGIS Pro compatibility required
+Inputs (fixed; do not alter schemas/columns)
 
-## Input Data Structure
-Preserve all existing columns and data structures from:
-- Shapefiles (states, counties)
-- CSV (cities)
-- GeoJSON (event data)
+...\tables\cities1000.csv
 
-## Output Requirements
-1. **Raster Format**: Compatible with ArcGIS Pro
-2. **Temporal Views**: Both cumulative and iterative
-3. **Spatial Coverage**: Exhaustive across all input levels
-4. **Visualization**: White background, colorblind-friendly, transparent voids
+...\shape_files\cb_2023_us_county_20m.shp
 
-## Approach Freedom
-The methodology is intentionally unspecified. Determine optimal:
-- Spatial join strategies
-- Temporal aggregation methods
-- Rasterization techniques
-- Output file structures
+...\shape_files\cb_2023_us_state_20m.shp
 
-## Success Criteria
-- [ ] All input files processed
-- [ ] Outputs load correctly in ArcGIS Pro
-- [ ] Temporal progression visualizable
-- [ ] Both cumulative and iterative views generated
-- [ ] Code is succinct and efficient
+...\geojson\francine.geojson
+
+...\geojson\helene.geojson
+
+Event GeoJSON schema to rely on
+
+Properties: FAC, LOC, GPE, time, Latitude, Longitude, make_polygon
+
+Geometry: Point with [lon, lat]
+
+Use geometry XY; Latitude/Longitude only for QA.
+
+Must produce (per event: francine, helene; per mode: iter, cum)
+
+CRF time-enabled raster (<event>_<mode>.crf)
+
+Space-Time Cube (<event>_<mode>.nc)
+
+Stack of aligned GeoTIFF slices + manifest (GDB table + CSV)
+
+Required ArcGIS toolchain (scripted)
+
+CreateMosaicDataset
+
+AddRastersToMosaicDataset (Raster Type = Table; field = RasterPath)
+
+BuildMultidimensionalInfo (Date=Date, Variable=Var)
+
+(Optional) BuildPyramidsandStatistics
+
+CopyRaster → CRF with process_as_multidimensional
+
+stpm.CreateSpaceTimeCubeFromMDLayer → .nc
+
+The fusion of states/counties/cities into pixels is up to the notebook. Keep it general, documented in one paragraph, without naming specific methods.
+
+Notebook skeleton
+
+Config: events, cell_km, time_bin, weights, gdb, out_root, crs_epsg, nodata.
+
+I/O + validation (assert all files; assert Point geometry; parse time with tz).
+
+Time binning (contiguous, fill empty bins).
+
+Fusion & slice creation (one raster per bin, iterative and cumulative).
+
+Mosaic → MD fields → CRF → Cube.
+
+QA: JSON summary; quick checks for consistent extent/CRS/pixel size and slice counts.
+
+Style & robustness
+
+Succinct helpers; early asserts; deterministic filenames.
+
+Logs compact; errors actionable (NEED_INFO: ...).
+
+No GeoPandas/Rasterio/online deps—arcpy only.
+
+Success criteria
+
+For both hurricanes, you can add the CRFs to a map and scrub the time slider; .nc works with Space-Time Pattern Mining and 3D visualization.
+
+All slices share the same CRS, extent, pixel size; mosaic footprints show Standard Time / Dimensions / Variable after building multidimensional info.
