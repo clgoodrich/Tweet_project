@@ -1,0 +1,36 @@
+{
+  "created": "2025-10-30T18:16:19.006383",
+  "resolution": {
+    "cell_km": 10,
+    "time_hours": 4
+  },
+  "cubes": [
+    {
+      "event": "helene",
+      "dimensions": {
+        "x": 120,
+        "y": 175,
+        "time": 11
+      },
+      "tweets": 3007,
+      "files": [
+        "C:\\Users\\colto\\Documents\\GitHub\\Tweet_project\\spacetimecube_output\\helene_iterative.nc",
+        "C:\\Users\\colto\\Documents\\GitHub\\Tweet_project\\spacetimecube_output\\helene_cumulative.nc"
+      ]
+    },
+    {
+      "event": "francine",
+      "dimensions": {
+        "x": 259,
+        "y": 170,
+        "time": 44
+      },
+      "tweets": 2303,
+      "files": [
+        "C:\\Users\\colto\\Documents\\GitHub\\Tweet_project\\spacetimecube_output\\francine_iterative.nc",
+        "C:\\Users\\colto\\Documents\\GitHub\\Tweet_project\\spacetimecube_output\\francine_cumulative.nc"
+      ]
+    }
+  ],
+  "total_files": 4
+}

@@ -28,7 +28,8 @@
       "Bash(jupyter nbconvert:*)",
       "Bash(python create_notebook.py:*)",
       "Bash(cat:*)",
-      "Bash(python create_spacetimecube.py:*)"
+      "Bash(python create_spacetimecube.py:*)",
+      "Bash(ls -lh \"C:\\users\\colto\\documents\\github\\tweet_project\\rasters_output\\helene\"\" | head -10 && echo \"...\" && ls \"C:userscoltodocumentsgithubtweet_projectrasters_outputhelene*.tif \")"
     ],
     "deny": [],
     "ask": []

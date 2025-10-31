@@ -1,6 +1,6 @@
 {
   "pipeline": "Raster Fusion",
-  "timestamp": "2025-10-29T19:09:46.515896",
+  "timestamp": "2025-10-29T23:34:39.557402",
   "config": {
     "event": "helene",
     "cell_size_km": 5,
