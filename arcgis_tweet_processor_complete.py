@@ -42,22 +42,22 @@ def get_data_file_path(*path_segments):
 # DATA LOADING FUNCTIONS - ARCPY VERSIONS
 # ==============================================================================
 
-def load_tweets_geojson(workspace="in_memory"):
+def load_tweets_geojson(hurricane_name, workspace="in_memory"):
     """
-    Load helene.geojson tweets as feature class
+    Load hurricane tweets as feature class
     Returns: Feature class path
     """
-    print("Loading tweets from helene.geojson...")
-    geojson_path = get_data_file_path('data', 'geojson', 'helene.geojson')
+    print(f"Loading tweets from {hurricane_name}.geojson...")
+    geojson_path = get_data_file_path('data', 'geojson', f'{hurricane_name}.geojson')
 
     # Convert GeoJSON to feature class
-    tweets_fc = os.path.join(workspace, "tweets_helene")
+    tweets_fc = os.path.join(workspace, f"tweets_{hurricane_name}")
     arcpy.conversion.JSONToFeatures(geojson_path, tweets_fc)
 
     # Project to WGS84 if needed
     sr = arcpy.Describe(tweets_fc).spatialReference
     if sr.factoryCode != 4326:
-        tweets_fc_wgs84 = os.path.join(workspace, "tweets_helene_wgs84")
+        tweets_fc_wgs84 = os.path.join(workspace, f"tweets_{hurricane_name}_wgs84")
         arcpy.management.Project(tweets_fc, tweets_fc_wgs84, arcpy.SpatialReference(4326))
         tweets_fc = tweets_fc_wgs84
 
@@ -508,16 +508,17 @@ def count_mentions_with_cascade_temporal(tweets_fc, state_lookup, county_lookup,
 # EXPORT TEMPORAL DATA TO SHAPEFILES
 # ==============================================================================
 
-def export_temporal_to_shapefiles(time_bins, temporal_state_mentions, temporal_county_mentions,
+def export_temporal_to_shapefiles(hurricane_name, time_bins, temporal_state_mentions, temporal_county_mentions,
                                   temporal_city_mentions, temporal_state_details, temporal_county_details,
                                   temporal_city_details, states_fc, counties_fc, cities_fc,
-                                  output_dir='arcgis_outputs'):
+                                  output_base_dir='arcgis_outputs'):
     """
     Export temporal (4-hour binned) data for states, counties, and cities.
     Creates BOTH incremental and cumulative count shapefiles (matches notebook exactly)
     """
 
-    # Create temporal output directories
+    # Create temporal output directories for this hurricane
+    output_dir = os.path.join(output_base_dir, hurricane_name)
     temporal_dir = os.path.join(output_dir, 'temporal_4hour_bins')
     incremental_dir = os.path.join(temporal_dir, 'incremental')
     cumulative_dir = os.path.join(temporal_dir, 'cumulative')
@@ -884,21 +885,17 @@ def export_cities_cumulative(cities_fc, cumulative_counts, bin_label, output_shp
 # MAIN EXECUTION
 # ==============================================================================
 
-def main():
-    """Main execution function - replicates entire test.ipynb workflow"""
-
-    print("="*60)
-    print("ARCGIS TWEET PROCESSOR - COMPLETE CONVERSION")
+def process_hurricane(hurricane_name, workspace="in_memory"):
+    """Process a single hurricane"""
+    print("\n" + "="*60)
+    print(f"PROCESSING HURRICANE: {hurricane_name.upper()}")
     print("="*60)
     print()
-
-    # Set workspace
-    workspace = "in_memory"
 
     # Load all data
     print("STEP 1: Loading Data")
     print("-" * 60)
-    tweets_fc = load_tweets_geojson(workspace)
+    tweets_fc = load_tweets_geojson(hurricane_name, workspace)
     cities_fc = load_cities_csv(workspace)
     states_fc = load_states_shapefile(workspace)
     counties_fc = load_counties_shapefile(workspace)
@@ -927,18 +924,43 @@ def main():
     print("STEP 4: Exporting Temporal Data")
     print("-" * 60)
     export_temporal_to_shapefiles(
-        time_bins, temporal_state_mentions, temporal_county_mentions, temporal_city_mentions,
+        hurricane_name, time_bins, temporal_state_mentions, temporal_county_mentions, temporal_city_mentions,
         temporal_state_details, temporal_county_details, temporal_city_details,
         states_fc, counties_fc, cities_fc
     )
     print()
 
     print("="*60)
-    print("PROCESSING COMPLETE!")
+    print(f"PROCESSING COMPLETE FOR {hurricane_name.upper()}!")
     print("="*60)
     print(f"\nTime range: {time_bins[0].strftime('%Y-%m-%d %H:%M:%S')} to {time_bins[-1].strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Total time bins: {len(time_bins)}")
-    print(f"\nAll outputs saved to: arcgis_outputs/temporal_4hour_bins/")
+    print(f"\nOutputs saved to: arcgis_outputs/{hurricane_name}/temporal_4hour_bins/")
+
+
+def main():
+    """Main execution function - processes all hurricanes"""
+
+    print("="*60)
+    print("ARCGIS TWEET PROCESSOR - COMPLETE CONVERSION")
+    print("Processing multiple hurricanes")
+    print("="*60)
+    print()
+
+    # Hurricane list
+    hurricanes = ["helene", "francine"]
+
+    # Set workspace
+    workspace = "in_memory"
+
+    for hurricane_name in hurricanes:
+        process_hurricane(hurricane_name, workspace)
+
+    print("\n" + "="*60)
+    print("ALL HURRICANES PROCESSED SUCCESSFULLY!")
+    print("="*60)
+    print(f"\nProcessed hurricanes: {', '.join(hurricanes)}")
+    print(f"\nAll outputs saved to: arcgis_outputs/")
 
 
 if __name__ == "__main__":

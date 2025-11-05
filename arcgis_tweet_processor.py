@@ -24,21 +24,16 @@ from fuzzywuzzy import fuzz, process
 PROJECT_ROOT = r"C:\users\colto\documents\github\tweet_project"
 DATA_ROOT = os.path.join(PROJECT_ROOT, "data")
 
-# Input paths
-GEOJSON_PATH = os.path.join(DATA_ROOT, "geojson", "helene.geojson")
+# Hurricane configurations
+HURRICANES = ["helene", "francine"]
+
+# Input paths (non-hurricane specific)
 CITIES_CSV = os.path.join(DATA_ROOT, "tables", "cities1000.csv")
 STATES_SHP = os.path.join(DATA_ROOT, "shape_files", "cb_2023_us_state_20m.shp")
 COUNTIES_SHP = os.path.join(DATA_ROOT, "shape_files", "cb_2023_us_county_20m.shp")
 
-# Output geodatabase
-GDB_PATH = os.path.join(PROJECT_ROOT, "tw_project.gdb")
-SCRATCH_GDB = os.path.join(PROJECT_ROOT, "scratch.gdb")
-
-# Output directory for shapefiles
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, "arcgis_outputs")
-TEMPORAL_DIR = os.path.join(OUTPUT_DIR, "temporal_4hour_bins")
-INCREMENTAL_DIR = os.path.join(TEMPORAL_DIR, "incremental")
-CUMULATIVE_DIR = os.path.join(TEMPORAL_DIR, "cumulative")
+# Base output directory
+OUTPUT_BASE_DIR = os.path.join(PROJECT_ROOT, "arcgis_outputs")
 
 # Spatial Reference
 SR_WGS84 = arcpy.SpatialReference(4326)
@@ -47,51 +42,64 @@ SR_WGS84 = arcpy.SpatialReference(4326)
 # ENVIRONMENT SETUP
 # ============================================================================
 
-def setup_environment():
-    """Set up ArcGIS environment and create geodatabases"""
+def setup_environment(hurricane_name):
+    """Set up ArcGIS environment and create geodatabases for specific hurricane"""
     print("="*80)
-    print("SETTING UP ARCGIS ENVIRONMENT")
+    print(f"SETTING UP ARCGIS ENVIRONMENT FOR {hurricane_name.upper()}")
     print("="*80)
+
+    # Hurricane-specific paths
+    gdb_path = os.path.join(PROJECT_ROOT, f"tw_project_{hurricane_name}.gdb")
+    scratch_gdb = os.path.join(PROJECT_ROOT, f"scratch_{hurricane_name}.gdb")
+
+    output_dir = os.path.join(OUTPUT_BASE_DIR, hurricane_name)
+    temporal_dir = os.path.join(output_dir, "temporal_4hour_bins")
+    incremental_dir = os.path.join(temporal_dir, "incremental")
+    cumulative_dir = os.path.join(temporal_dir, "cumulative")
 
     # Create geodatabases
-    if not arcpy.Exists(GDB_PATH):
-        print(f"\nCreating geodatabase: {GDB_PATH}")
-        arcpy.management.CreateFileGDB(os.path.dirname(GDB_PATH), os.path.basename(GDB_PATH))
+    if not arcpy.Exists(gdb_path):
+        print(f"\nCreating geodatabase: {gdb_path}")
+        arcpy.management.CreateFileGDB(os.path.dirname(gdb_path), os.path.basename(gdb_path))
 
-    if not arcpy.Exists(SCRATCH_GDB):
-        print(f"Creating scratch geodatabase: {SCRATCH_GDB}")
-        arcpy.management.CreateFileGDB(os.path.dirname(SCRATCH_GDB), os.path.basename(SCRATCH_GDB))
+    if not arcpy.Exists(scratch_gdb):
+        print(f"Creating scratch geodatabase: {scratch_gdb}")
+        arcpy.management.CreateFileGDB(os.path.dirname(scratch_gdb), os.path.basename(scratch_gdb))
 
     # Set environment
-    arcpy.env.workspace = GDB_PATH
-    arcpy.env.scratchWorkspace = SCRATCH_GDB
+    arcpy.env.workspace = gdb_path
+    arcpy.env.scratchWorkspace = scratch_gdb
     arcpy.env.overwriteOutput = True
     arcpy.env.outputCoordinateSystem = SR_WGS84
 
     # Create output directories
-    os.makedirs(INCREMENTAL_DIR, exist_ok=True)
-    os.makedirs(CUMULATIVE_DIR, exist_ok=True)
+    os.makedirs(incremental_dir, exist_ok=True)
+    os.makedirs(cumulative_dir, exist_ok=True)
 
     print(f"\nWorkspace: {arcpy.env.workspace}")
     print(f"Scratch: {arcpy.env.scratchWorkspace}")
-    print(f"Output directory: {OUTPUT_DIR}")
+    print(f"Output directory: {output_dir}")
     print("\nEnvironment setup complete!")
+
+    return gdb_path, scratch_gdb, output_dir, temporal_dir, incremental_dir, cumulative_dir
 
 # ============================================================================
 # DATA IMPORT
 # ============================================================================
 
-def import_data():
+def import_data(hurricane_name, gdb_path):
     """Import all input data to geodatabase"""
     print("\n" + "="*80)
-    print("IMPORTING DATA TO GEODATABASE")
+    print(f"IMPORTING DATA TO GEODATABASE FOR {hurricane_name.upper()}")
     print("="*80)
 
+    geojson_path = os.path.join(DATA_ROOT, "geojson", f"{hurricane_name}.geojson")
+
     # Import tweets from GeoJSON
-    print("\n1. Importing helene.geojson as tweet points...")
-    tweets_fc = os.path.join(GDB_PATH, "tweets_helene")
+    print(f"\n1. Importing {hurricane_name}.geojson as tweet points...")
+    tweets_fc = os.path.join(gdb_path, f"tweets_{hurricane_name}")
     if not arcpy.Exists(tweets_fc):
-        arcpy.conversion.JSONToFeatures(GEOJSON_PATH, tweets_fc)
+        arcpy.conversion.JSONToFeatures(geojson_path, tweets_fc)
         print(f"   Created: {tweets_fc}")
         count = int(arcpy.management.GetCount(tweets_fc)[0])
         print(f"   Features: {count}")
@@ -100,9 +108,9 @@ def import_data():
 
     # Import states
     print("\n2. Importing US States...")
-    states_fc = os.path.join(GDB_PATH, "us_states")
+    states_fc = os.path.join(gdb_path, "us_states")
     if not arcpy.Exists(states_fc):
-        arcpy.conversion.FeatureClassToFeatureClass(STATES_SHP, GDB_PATH, "us_states")
+        arcpy.conversion.FeatureClassToFeatureClass(STATES_SHP, gdb_path, "us_states")
         print(f"   Created: {states_fc}")
         count = int(arcpy.management.GetCount(states_fc)[0])
         print(f"   Features: {count}")
@@ -111,9 +119,9 @@ def import_data():
 
     # Import counties
     print("\n3. Importing US Counties...")
-    counties_fc = os.path.join(GDB_PATH, "us_counties")
+    counties_fc = os.path.join(gdb_path, "us_counties")
     if not arcpy.Exists(counties_fc):
-        arcpy.conversion.FeatureClassToFeatureClass(COUNTIES_SHP, GDB_PATH, "us_counties")
+        arcpy.conversion.FeatureClassToFeatureClass(COUNTIES_SHP, gdb_path, "us_counties")
         print(f"   Created: {counties_fc}")
         count = int(arcpy.management.GetCount(counties_fc)[0])
         print(f"   Features: {count}")
@@ -122,11 +130,11 @@ def import_data():
 
     # Import cities from CSV and create points
     print("\n4. Importing US Cities from CSV...")
-    cities_fc = os.path.join(GDB_PATH, "us_cities")
+    cities_fc = os.path.join(gdb_path, "us_cities")
     if not arcpy.Exists(cities_fc):
         # First convert CSV to table
-        cities_table = os.path.join(GDB_PATH, "cities_table")
-        arcpy.conversion.TableToTable(CITIES_CSV, GDB_PATH, "cities_table")
+        cities_table = os.path.join(gdb_path, "cities_table")
+        arcpy.conversion.TableToTable(CITIES_CSV, gdb_path, "cities_table")
 
         # Filter to US cities and create points
         # Based on notebook: country_code == 'US', feature_class == 'P', population not null
@@ -154,16 +162,16 @@ def import_data():
 # TEXT NORMALIZATION (preprocess_place_name from notebook)
 # ============================================================================
 
-def add_normalized_fields():
+def add_normalized_fields(hurricane_name, gdb_path):
     """Add normalized text fields to all feature classes for matching"""
     print("\n" + "="*80)
     print("ADDING NORMALIZED TEXT FIELDS")
     print("="*80)
 
-    tweets_fc = os.path.join(GDB_PATH, "tweets_helene")
-    states_fc = os.path.join(GDB_PATH, "us_states")
-    counties_fc = os.path.join(GDB_PATH, "us_counties")
-    cities_fc = os.path.join(GDB_PATH, "us_cities")
+    tweets_fc = os.path.join(gdb_path, f"tweets_{hurricane_name}")
+    states_fc = os.path.join(gdb_path, "us_states")
+    counties_fc = os.path.join(gdb_path, "us_counties")
+    cities_fc = os.path.join(gdb_path, "us_cities")
 
     # Add normalized GPE field to tweets
     print("\n1. Adding normalized GPE field to tweets...")
@@ -233,15 +241,15 @@ def normalize(text):
 # LOOKUP DICTIONARIES (create_lookup_dictionaries from notebook)
 # ============================================================================
 
-def build_lookup_dictionaries():
+def build_lookup_dictionaries(gdb_path):
     """Build lookup dictionaries for fuzzy matching (replicates notebook function)"""
     print("\n" + "="*80)
     print("BUILDING LOOKUP DICTIONARIES")
     print("="*80)
 
-    states_fc = os.path.join(GDB_PATH, "us_states")
-    counties_fc = os.path.join(GDB_PATH, "us_counties")
-    cities_fc = os.path.join(GDB_PATH, "us_cities")
+    states_fc = os.path.join(gdb_path, "us_states")
+    counties_fc = os.path.join(gdb_path, "us_counties")
+    cities_fc = os.path.join(gdb_path, "us_cities")
 
     # States lookup
     print("\n1. Building state lookup...")
@@ -375,13 +383,13 @@ def fuzzy_match_entity(entity, lookup_dict, threshold=85):
 # TIME BINNING
 # ============================================================================
 
-def add_time_bins():
+def add_time_bins(hurricane_name, gdb_path):
     """Add 4-hour time bin field to tweets (replicates dt.floor('4h'))"""
     print("\n" + "="*80)
     print("ADDING TIME BINS (4-HOUR)")
     print("="*80)
 
-    tweets_fc = os.path.join(GDB_PATH, "tweets_helene")
+    tweets_fc = os.path.join(gdb_path, f"tweets_{hurricane_name}")
 
     # Add bin_start field
     if "bin_start" not in [f.name for f in arcpy.ListFields(tweets_fc)]:
@@ -434,7 +442,7 @@ def floor_to_4h(time_str):
 # (count_mentions_in_tweets_temporal_with_cascade from notebook)
 # ============================================================================
 
-def count_mentions_temporal_with_cascade(time_bins, state_lookup, county_lookup, city_lookup):
+def count_mentions_temporal_with_cascade(hurricane_name, gdb_path, time_bins, state_lookup, county_lookup, city_lookup):
     """
     Count mentions by time bin WITH hierarchical cascade.
     Exact replica of notebook function.
@@ -450,10 +458,10 @@ def count_mentions_temporal_with_cascade(time_bins, state_lookup, county_lookup,
     print("COUNTING MENTIONS BY TIME BIN WITH HIERARCHICAL CASCADE")
     print("="*80)
 
-    tweets_fc = os.path.join(GDB_PATH, "tweets_helene")
-    states_fc = os.path.join(GDB_PATH, "us_states")
-    counties_fc = os.path.join(GDB_PATH, "us_counties")
-    cities_fc = os.path.join(GDB_PATH, "us_cities")
+    tweets_fc = os.path.join(gdb_path, f"tweets_{hurricane_name}")
+    states_fc = os.path.join(gdb_path, "us_states")
+    counties_fc = os.path.join(gdb_path, "us_counties")
+    cities_fc = os.path.join(gdb_path, "us_cities")
 
     # Initialize dictionaries for each time bin
     temporal_state_mentions = {tb: {} for tb in time_bins}
@@ -635,7 +643,8 @@ def count_mentions_temporal_with_cascade(time_bins, state_lookup, county_lookup,
 # EXPORT TEMPORAL DATA (export_temporal_to_arcgis from notebook)
 # ============================================================================
 
-def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_mentions,
+def export_temporal_data(gdb_path, temporal_dir, incremental_dir, cumulative_dir,
+                         time_bins, temporal_state_mentions, temporal_county_mentions,
                          temporal_city_mentions, temporal_state_details, temporal_county_details,
                          temporal_city_details):
     """
@@ -647,12 +656,12 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
     print("EXPORTING TEMPORAL DATA - INCREMENTAL & CUMULATIVE")
     print("="*80)
 
-    states_fc = os.path.join(GDB_PATH, "us_states")
-    counties_fc = os.path.join(GDB_PATH, "us_counties")
-    cities_fc = os.path.join(GDB_PATH, "us_cities")
+    states_fc = os.path.join(gdb_path, "us_states")
+    counties_fc = os.path.join(gdb_path, "us_counties")
+    cities_fc = os.path.join(gdb_path, "us_cities")
 
     print(f"\nTime bins: {len(time_bins)}")
-    print(f"Output directory: {TEMPORAL_DIR}")
+    print(f"Output directory: {temporal_dir}")
 
     # Track individual bin files for later merging
     incremental_bin_files = {'states': [], 'counties': [], 'cities': []}
@@ -692,8 +701,8 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
 
         # INCREMENTAL: Only states with mentions in THIS bin
         if temporal_state_mentions[bin_time]:
-            inc_fc = os.path.join(GDB_PATH, f"states_inc_{bin_str}")
-            arcpy.conversion.FeatureClassToFeatureClass(states_fc, GDB_PATH, f"states_inc_{bin_str}")
+            inc_fc = os.path.join(gdb_path, f"states_inc_{bin_str}")
+            arcpy.conversion.FeatureClassToFeatureClass(states_fc, gdb_path, f"states_inc_{bin_str}")
 
             # Add fields
             arcpy.management.AddField(inc_fc, "tweet_cnt", "LONG")
@@ -715,16 +724,16 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
                         cursor.deleteRow()
 
             # Export to shapefile
-            shp_path = os.path.join(INCREMENTAL_DIR, f"states_inc_{bin_str}.shp")
-            arcpy.conversion.FeatureClassToShapefile(inc_fc, INCREMENTAL_DIR)
+            shp_path = os.path.join(incremental_dir, f"states_inc_{bin_str}.shp")
+            arcpy.conversion.FeatureClassToShapefile(inc_fc, incremental_dir)
             incremental_bin_files['states'].append(shp_path)
 
             count = int(arcpy.management.GetCount(inc_fc)[0])
             print(f"    States incremental: {count} features")
 
         # CUMULATIVE: ALL states that have ever been mentioned
-        cum_fc = os.path.join(GDB_PATH, f"states_cum_{bin_str}")
-        arcpy.conversion.FeatureClassToFeatureClass(states_fc, GDB_PATH, f"states_cum_{bin_str}")
+        cum_fc = os.path.join(gdb_path, f"states_cum_{bin_str}")
+        arcpy.conversion.FeatureClassToFeatureClass(states_fc, gdb_path, f"states_cum_{bin_str}")
 
         arcpy.management.AddField(cum_fc, "cumul_cnt", "LONG")
         arcpy.management.AddField(cum_fc, "time_bin", "TEXT", field_length=50)
@@ -739,8 +748,8 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
                 else:
                     cursor.deleteRow()
 
-        shp_path = os.path.join(CUMULATIVE_DIR, f"states_cum_{bin_str}.shp")
-        arcpy.conversion.FeatureClassToShapefile(cum_fc, CUMULATIVE_DIR)
+        shp_path = os.path.join(cumulative_dir, f"states_cum_{bin_str}.shp")
+        arcpy.conversion.FeatureClassToShapefile(cum_fc, cumulative_dir)
         cumulative_bin_files['states'].append(shp_path)
 
         count = int(arcpy.management.GetCount(cum_fc)[0])
@@ -753,8 +762,8 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
 
         # INCREMENTAL
         if temporal_county_mentions[bin_time]:
-            inc_fc = os.path.join(GDB_PATH, f"counties_inc_{bin_str}")
-            arcpy.conversion.FeatureClassToFeatureClass(counties_fc, GDB_PATH, f"counties_inc_{bin_str}")
+            inc_fc = os.path.join(gdb_path, f"counties_inc_{bin_str}")
+            arcpy.conversion.FeatureClassToFeatureClass(counties_fc, gdb_path, f"counties_inc_{bin_str}")
 
             arcpy.management.AddField(inc_fc, "tweet_cnt", "LONG")
             arcpy.management.AddField(inc_fc, "smpl_gpe", "TEXT", field_length=254)
@@ -772,16 +781,16 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
                     else:
                         cursor.deleteRow()
 
-            shp_path = os.path.join(INCREMENTAL_DIR, f"counties_inc_{bin_str}.shp")
-            arcpy.conversion.FeatureClassToShapefile(inc_fc, INCREMENTAL_DIR)
+            shp_path = os.path.join(incremental_dir, f"counties_inc_{bin_str}.shp")
+            arcpy.conversion.FeatureClassToShapefile(inc_fc, incremental_dir)
             incremental_bin_files['counties'].append(shp_path)
 
             count = int(arcpy.management.GetCount(inc_fc)[0])
             print(f"    Counties incremental: {count} features")
 
         # CUMULATIVE
-        cum_fc = os.path.join(GDB_PATH, f"counties_cum_{bin_str}")
-        arcpy.conversion.FeatureClassToFeatureClass(counties_fc, GDB_PATH, f"counties_cum_{bin_str}")
+        cum_fc = os.path.join(gdb_path, f"counties_cum_{bin_str}")
+        arcpy.conversion.FeatureClassToFeatureClass(counties_fc, gdb_path, f"counties_cum_{bin_str}")
 
         arcpy.management.AddField(cum_fc, "cumul_cnt", "LONG")
         arcpy.management.AddField(cum_fc, "time_bin", "TEXT", field_length=50)
@@ -796,8 +805,8 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
                 else:
                     cursor.deleteRow()
 
-        shp_path = os.path.join(CUMULATIVE_DIR, f"counties_cum_{bin_str}.shp")
-        arcpy.conversion.FeatureClassToShapefile(cum_fc, CUMULATIVE_DIR)
+        shp_path = os.path.join(cumulative_dir, f"counties_cum_{bin_str}.shp")
+        arcpy.conversion.FeatureClassToShapefile(cum_fc, cumulative_dir)
         cumulative_bin_files['counties'].append(shp_path)
 
         count = int(arcpy.management.GetCount(cum_fc)[0])
@@ -810,8 +819,8 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
 
         # INCREMENTAL
         if temporal_city_mentions[bin_time]:
-            inc_fc = os.path.join(GDB_PATH, f"cities_inc_{bin_str}")
-            arcpy.conversion.FeatureClassToFeatureClass(cities_fc, GDB_PATH, f"cities_inc_{bin_str}")
+            inc_fc = os.path.join(gdb_path, f"cities_inc_{bin_str}")
+            arcpy.conversion.FeatureClassToFeatureClass(cities_fc, gdb_path, f"cities_inc_{bin_str}")
 
             arcpy.management.AddField(inc_fc, "tweet_cnt", "LONG")
             arcpy.management.AddField(inc_fc, "mtchd_ent", "TEXT", field_length=254)
@@ -831,16 +840,16 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
                     else:
                         cursor.deleteRow()
 
-            shp_path = os.path.join(INCREMENTAL_DIR, f"cities_inc_{bin_str}.shp")
-            arcpy.conversion.FeatureClassToShapefile(inc_fc, INCREMENTAL_DIR)
+            shp_path = os.path.join(incremental_dir, f"cities_inc_{bin_str}.shp")
+            arcpy.conversion.FeatureClassToShapefile(inc_fc, incremental_dir)
             incremental_bin_files['cities'].append(shp_path)
 
             count = int(arcpy.management.GetCount(inc_fc)[0])
             print(f"    Cities incremental: {count} features")
 
         # CUMULATIVE
-        cum_fc = os.path.join(GDB_PATH, f"cities_cum_{bin_str}")
-        arcpy.conversion.FeatureClassToFeatureClass(cities_fc, GDB_PATH, f"cities_cum_{bin_str}")
+        cum_fc = os.path.join(gdb_path, f"cities_cum_{bin_str}")
+        arcpy.conversion.FeatureClassToFeatureClass(cities_fc, gdb_path, f"cities_cum_{bin_str}")
 
         arcpy.management.AddField(cum_fc, "cumul_cnt", "LONG")
         arcpy.management.AddField(cum_fc, "time_bin", "TEXT", field_length=50)
@@ -855,8 +864,8 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
                 else:
                     cursor.deleteRow()
 
-        shp_path = os.path.join(CUMULATIVE_DIR, f"cities_cum_{bin_str}.shp")
-        arcpy.conversion.FeatureClassToShapefile(cum_fc, CUMULATIVE_DIR)
+        shp_path = os.path.join(cumulative_dir, f"cities_cum_{bin_str}.shp")
+        arcpy.conversion.FeatureClassToShapefile(cum_fc, cumulative_dir)
         cumulative_bin_files['cities'].append(shp_path)
 
         count = int(arcpy.management.GetCount(cum_fc)[0])
@@ -868,56 +877,56 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
     # INCREMENTAL MASTERS
     if incremental_bin_files['states']:
         print(f"    Merging {len(incremental_bin_files['states'])} state incremental files...")
-        master_fc = os.path.join(GDB_PATH, "states_INCREMENTAL_ALL")
+        master_fc = os.path.join(gdb_path, "states_INCREMENTAL_ALL")
         arcpy.management.Merge(incremental_bin_files['states'], master_fc)
-        shp_path = os.path.join(INCREMENTAL_DIR, "states_INCREMENTAL_ALL.shp")
-        arcpy.conversion.FeatureClassToShapefile(master_fc, INCREMENTAL_DIR)
+        shp_path = os.path.join(incremental_dir, "states_INCREMENTAL_ALL.shp")
+        arcpy.conversion.FeatureClassToShapefile(master_fc, incremental_dir)
         count = int(arcpy.management.GetCount(master_fc)[0])
         print(f"    ✓ States incremental master: {count} records")
 
     if incremental_bin_files['counties']:
         print(f"    Merging {len(incremental_bin_files['counties'])} county incremental files...")
-        master_fc = os.path.join(GDB_PATH, "counties_INCREMENTAL_ALL")
+        master_fc = os.path.join(gdb_path, "counties_INCREMENTAL_ALL")
         arcpy.management.Merge(incremental_bin_files['counties'], master_fc)
-        shp_path = os.path.join(INCREMENTAL_DIR, "counties_INCREMENTAL_ALL.shp")
-        arcpy.conversion.FeatureClassToShapefile(master_fc, INCREMENTAL_DIR)
+        shp_path = os.path.join(incremental_dir, "counties_INCREMENTAL_ALL.shp")
+        arcpy.conversion.FeatureClassToShapefile(master_fc, incremental_dir)
         count = int(arcpy.management.GetCount(master_fc)[0])
         print(f"    ✓ Counties incremental master: {count} records")
 
     if incremental_bin_files['cities']:
         print(f"    Merging {len(incremental_bin_files['cities'])} city incremental files...")
-        master_fc = os.path.join(GDB_PATH, "cities_INCREMENTAL_ALL")
+        master_fc = os.path.join(gdb_path, "cities_INCREMENTAL_ALL")
         arcpy.management.Merge(incremental_bin_files['cities'], master_fc)
-        shp_path = os.path.join(INCREMENTAL_DIR, "cities_INCREMENTAL_ALL.shp")
-        arcpy.conversion.FeatureClassToShapefile(master_fc, INCREMENTAL_DIR)
+        shp_path = os.path.join(incremental_dir, "cities_INCREMENTAL_ALL.shp")
+        arcpy.conversion.FeatureClassToShapefile(master_fc, incremental_dir)
         count = int(arcpy.management.GetCount(master_fc)[0])
         print(f"    ✓ Cities incremental master: {count} records")
 
     # CUMULATIVE MASTERS
     if cumulative_bin_files['states']:
         print(f"    Merging {len(cumulative_bin_files['states'])} state cumulative files...")
-        master_fc = os.path.join(GDB_PATH, "states_CUMULATIVE_ALL")
+        master_fc = os.path.join(gdb_path, "states_CUMULATIVE_ALL")
         arcpy.management.Merge(cumulative_bin_files['states'], master_fc)
-        shp_path = os.path.join(CUMULATIVE_DIR, "states_CUMULATIVE_ALL.shp")
-        arcpy.conversion.FeatureClassToShapefile(master_fc, CUMULATIVE_DIR)
+        shp_path = os.path.join(cumulative_dir, "states_CUMULATIVE_ALL.shp")
+        arcpy.conversion.FeatureClassToShapefile(master_fc, cumulative_dir)
         count = int(arcpy.management.GetCount(master_fc)[0])
         print(f"    ✓ States cumulative master: {count} records")
 
     if cumulative_bin_files['counties']:
         print(f"    Merging {len(cumulative_bin_files['counties'])} county cumulative files...")
-        master_fc = os.path.join(GDB_PATH, "counties_CUMULATIVE_ALL")
+        master_fc = os.path.join(gdb_path, "counties_CUMULATIVE_ALL")
         arcpy.management.Merge(cumulative_bin_files['counties'], master_fc)
-        shp_path = os.path.join(CUMULATIVE_DIR, "counties_CUMULATIVE_ALL.shp")
-        arcpy.conversion.FeatureClassToShapefile(master_fc, CUMULATIVE_DIR)
+        shp_path = os.path.join(cumulative_dir, "counties_CUMULATIVE_ALL.shp")
+        arcpy.conversion.FeatureClassToShapefile(master_fc, cumulative_dir)
         count = int(arcpy.management.GetCount(master_fc)[0])
         print(f"    ✓ Counties cumulative master: {count} records")
 
     if cumulative_bin_files['cities']:
         print(f"    Merging {len(cumulative_bin_files['cities'])} city cumulative files...")
-        master_fc = os.path.join(GDB_PATH, "cities_CUMULATIVE_ALL")
+        master_fc = os.path.join(gdb_path, "cities_CUMULATIVE_ALL")
         arcpy.management.Merge(cumulative_bin_files['cities'], master_fc)
-        shp_path = os.path.join(CUMULATIVE_DIR, "cities_CUMULATIVE_ALL.shp")
-        arcpy.conversion.FeatureClassToShapefile(master_fc, CUMULATIVE_DIR)
+        shp_path = os.path.join(cumulative_dir, "cities_CUMULATIVE_ALL.shp")
+        arcpy.conversion.FeatureClassToShapefile(master_fc, cumulative_dir)
         count = int(arcpy.management.GetCount(master_fc)[0])
         print(f"    ✓ Cities cumulative master: {count} records")
 
@@ -939,54 +948,71 @@ def export_temporal_data(time_bins, temporal_state_mentions, temporal_county_men
 # MAIN EXECUTION
 # ============================================================================
 
-def main():
-    """Main execution function"""
+def process_hurricane(hurricane_name):
+    """Process a single hurricane"""
     print("\n" + "="*80)
-    print("ARCGIS PRO 3.5 TWEET PROCESSOR")
-    print("Replication of test.ipynb")
+    print(f"PROCESSING HURRICANE: {hurricane_name.upper()}")
     print("="*80)
 
     try:
         # 1. Setup environment
-        setup_environment()
+        gdb_path, scratch_gdb, output_dir, temporal_dir, incremental_dir, cumulative_dir = setup_environment(hurricane_name)
 
         # 2. Import data
-        tweets_fc, states_fc, counties_fc, cities_fc = import_data()
+        tweets_fc, states_fc, counties_fc, cities_fc = import_data(hurricane_name, gdb_path)
 
         # 3. Add normalized fields
-        add_normalized_fields()
+        add_normalized_fields(hurricane_name, gdb_path)
 
         # 4. Build lookup dictionaries
-        state_lookup, county_lookup, city_lookup, state_abbrev_to_name = build_lookup_dictionaries()
+        state_lookup, county_lookup, city_lookup, state_abbrev_to_name = build_lookup_dictionaries(gdb_path)
 
         # 5. Add time bins
-        time_bins = add_time_bins()
+        time_bins = add_time_bins(hurricane_name, gdb_path)
 
         # 6. Count mentions with cascade
         (temporal_state_mentions, temporal_county_mentions, temporal_city_mentions,
          temporal_state_details, temporal_county_details, temporal_city_details) = \
-            count_mentions_temporal_with_cascade(time_bins, state_lookup, county_lookup, city_lookup)
+            count_mentions_temporal_with_cascade(hurricane_name, gdb_path, time_bins, state_lookup, county_lookup, city_lookup)
 
         # 7. Export temporal data
-        export_temporal_data(time_bins, temporal_state_mentions, temporal_county_mentions,
+        export_temporal_data(gdb_path, temporal_dir, incremental_dir, cumulative_dir,
+                           time_bins, temporal_state_mentions, temporal_county_mentions,
                            temporal_city_mentions, temporal_state_details, temporal_county_details,
                            temporal_city_details)
 
         print("\n" + "="*80)
-        print("PROCESSING COMPLETE!")
+        print(f"PROCESSING COMPLETE FOR {hurricane_name.upper()}!")
         print("="*80)
         print(f"\nSummary:")
         print(f"Total time bins: {len(time_bins)}")
         if time_bins:
             print(f"Time range: {time_bins[0].strftime('%Y-%m-%d %H:%M:%S')} to {time_bins[-1].strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"\nGeodatabase: {GDB_PATH}")
-        print(f"Output directory: {OUTPUT_DIR}")
+        print(f"\nGeodatabase: {gdb_path}")
+        print(f"Output directory: {output_dir}")
 
     except Exception as e:
-        print(f"\n\nERROR: {str(e)}")
+        print(f"\n\nERROR processing {hurricane_name}: {str(e)}")
         import traceback
         traceback.print_exc()
         raise
+
+
+def main():
+    """Main execution function - processes all hurricanes"""
+    print("\n" + "="*80)
+    print("ARCGIS PRO 3.5 TWEET PROCESSOR")
+    print("Processing multiple hurricanes")
+    print("="*80)
+
+    for hurricane_name in HURRICANES:
+        process_hurricane(hurricane_name)
+
+    print("\n" + "="*80)
+    print("ALL HURRICANES PROCESSED SUCCESSFULLY!")
+    print("="*80)
+    print(f"\nProcessed hurricanes: {', '.join(HURRICANES)}")
+    print(f"\nOutput base directory: {OUTPUT_BASE_DIR}")
 
 if __name__ == "__main__":
     main()
