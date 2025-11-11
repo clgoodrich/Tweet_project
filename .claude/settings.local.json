@@ -3,7 +3,8 @@
     "allow": [
       "Bash(cat:*)",
       "Bash(python:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
